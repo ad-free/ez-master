@@ -3,7 +3,7 @@ import argparse
 import enum
 import getpass
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import httpx
 from pyfiglet import Figlet
@@ -75,8 +75,7 @@ def get_user_id(token: str) -> str:
 def register_ot(
     token: str,
     user_id: str,
-    from_date: datetime,
-    to_date: datetime,
+    dates: list,
     from_time: str,
     to_time: str,
     ot_type: int = OTType.PLAN.value,
@@ -84,8 +83,6 @@ def register_ot(
 ):
     """Register Overtime"""
     payload = {
-        "From": f"{from_date.isoformat()}.000Z",
-        "To": f"{to_date.isoformat()}.000Z",
         "Type": "Period",
         "GhiChu": "",
         "CaDau": 0,
@@ -131,19 +128,19 @@ def register_ot(
     }
 
     print(f"[!] Registering OT for {user_id}")
-    response = httpx.post(url=EZ_APIS["ot"], json=payload, headers={"Authorization": f"bearer {token}"}, timeout=10)
-    if response.status_code != 200:
-        print(response.content)
-        raise EzException("Couldn't register OT on Ez Tool")
+    for date in dates:
+        payload = {**payload, "From": f"{date}.000Z", "To": f"{date}.000Z"}
+        response = httpx.post(url=EZ_APIS["ot"], json=payload, headers={"Authorization": f"bearer {token}"}, timeout=10)
+        if response.status_code != 200:
+            print(response.content)
+            raise EzException("Couldn't register OT on Ez Tool")
 
     print(f"[!] WFH registration successful for {user_id}")
 
 
-def register_wfh(token: str, user_id: str, from_date: datetime, to_date: datetime):
+def register_wfh(token: str, user_id: str, dates: list):
     """Register WFH"""
     payload = {
-        "From": f"{from_date.isoformat()}.000Z",
-        "To": f"{to_date.isoformat()}.000Z",
         "Type": "day",
         "NhomPhuCap": None,
         "IsTomorrowFromTime": False,
@@ -165,13 +162,16 @@ def register_wfh(token: str, user_id: str, from_date: datetime, to_date: datetim
     }
 
     print(f"[!] Registing WFH for {user_id}")
-    response = httpx.post(
-        url=EZ_APIS["wfh"], json=payload, headers={"Authorization": f"bearer {token}"}, timeout=10
-    )
 
-    if response.status_code != 200:
-        print(response.content)
-        raise EzException("Coudn't register WFH on EZ Tool.")
+    for date in dates:
+        payload = {**payload, "From": f"{date}.000Z", "To": f"{date}.000Z"}
+        response = httpx.post(
+            url=EZ_APIS["wfh"], json=payload, headers={"Authorization": f"bearer {token}"}, timeout=10
+        )
+
+        if response.status_code != 200:
+            print(response.content)
+            raise EzException("Coudn't register WFH on EZ Tool.")
 
     print(f"[!] WFH registration successful for {user_id}")
 
@@ -189,6 +189,11 @@ def ez_master(script_args: argparse.Namespace):
     from_date = datetime.strptime(script_args.from_date, EZ_DATE_FORMAT)
     to_date = datetime.strptime(script_args.to_date, EZ_DATE_FORMAT)
 
+    if from_date > to_date:
+        raise EzException("[!] You must pick to_date greater than from_date.")
+
+    dates = [(from_date + timedelta(days=day)).isoformat() for day in range((to_date - from_date).days + 1)]
+
     match(script_args.type):
         case EzType.OT.value:
             if not script_args.from_time:
@@ -202,8 +207,7 @@ def ez_master(script_args: argparse.Namespace):
             register_ot(
                 token=script_args.token,
                 user_id=user_id,
-                from_date=from_date,
-                to_date=to_date,
+                dates=dates,
                 from_time=time.strftime(EZ_TIME_FORMAT, from_time),
                 to_time=time.strftime(EZ_TIME_FORMAT, to_time),
                 ot_type= OTType.PLAN.value if script_args.ot_type == OTType.PLAN.name else OTType.ADDITIONAL.value,
@@ -211,7 +215,7 @@ def ez_master(script_args: argparse.Namespace):
             )
         case EzType.WFH.value:
             register_wfh(
-                token=script_args.tokem, user_id=user_id, from_date=script_args.from_date, to_date=script_args.to_date
+                token=script_args.tokem, user_id=user_id, dates=dates
             )
         case _:
             pass
