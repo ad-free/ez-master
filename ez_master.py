@@ -3,6 +3,7 @@ import argparse
 import enum
 import getpass
 import time
+from ast import Pass
 from datetime import datetime, timedelta
 
 import httpx
@@ -45,11 +46,39 @@ class Password:
 
     def __init__(self, value):
         if value == self.DEFAULT:
-            value = getpass.getpass("Your token: ")
+            value = getpass.getpass("Your password: ")
         self.value = value
 
     def __str__(self):
         return self.value
+
+
+def login(username: str, password: Password):
+    """Login
+
+    Args:
+        username (str): The username
+        password (str): The password
+
+    Raises:
+        EzException: Couldn't login into Ez server
+
+    Returns:
+        Token 
+    """
+    payload = {
+        "UserName": username,
+        "Password": password.value,
+    }
+
+    response = httpx.post(
+        url=EZ_APIS["signin"],
+        json=payload,
+    )
+
+    if response.status_code != 200:
+        raise EzException("[!] Couldn't login into EZ.")
+    return response.json()["Token"]
 
 
 def get_user_id(token: str) -> str:
@@ -139,7 +168,17 @@ def register_ot(
 
 
 def register_wfh(token: str, user_id: str, dates: list, reason: str):
-    """Register WFH"""
+    """Register WFH
+
+    Args:
+        token (str): The token during calling the API
+        user_id (str): The UserID
+        dates (list): The date list
+        reason (str): The WFH reason
+
+    Raises:
+        EzException: Couldn't register WFH
+    """
     payload = {
         "Type": "day",
         "NhomPhuCap": None,
@@ -182,9 +221,8 @@ def ez_master(script_args: argparse.Namespace):
     Args:
         script_args: ArgumentParser
     """
-    if not script_args.token:
-        raise EzException("You must enter a token.")
-    user_id = get_user_id(token=script_args.token)
+    token = login(username=script_args.username, password=script_args.password)
+    user_id = get_user_id(token=token)
 
     from_date = datetime.strptime(script_args.from_date, EZ_DATE_FORMAT)
     to_date = datetime.strptime(script_args.to_date, EZ_DATE_FORMAT)
@@ -203,7 +241,7 @@ def ez_master(script_args: argparse.Namespace):
             from_time = time.strptime(script_args.from_time, EZ_TIME_FORMAT)
             to_time = time.strptime(script_args.to_time, EZ_TIME_FORMAT)
             register_ot(
-                token=script_args.token,
+                token=token,
                 user_id=user_id,
                 dates=dates,
                 from_time=time.strftime(EZ_TIME_FORMAT, from_time),
@@ -213,7 +251,7 @@ def ez_master(script_args: argparse.Namespace):
             )
         case EzType.WFH.value:
             register_wfh(
-                token=script_args.token, user_id=user_id, dates=dates, reason=script_args.reason
+                token=token, user_id=user_id, dates=dates, reason=script_args.reason
             )
         case _:
             pass
@@ -227,7 +265,10 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     "-t", "--type", choices=[EzType.OOO.value, EzType.OT.value, EzType.WFH.value], required=True
 )
-parser.add_argument("--token", type=Password, help="Your token", default=Password.DEFAULT)
+parser.add_argument("-u", "--username", dest="username", help="Your username", required=True)
+parser.add_argument(
+    "-p", "--password", dest="password", type=Password, help="Your password", default=Password.DEFAULT
+)
 parser.add_argument(
     "-fd",
     "--from-date",
