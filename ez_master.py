@@ -138,7 +138,7 @@ def register_ot(
     print(f"[!] WFH registration successful for {user_id}")
 
 
-def register_wfh(token: str, user_id: str, dates: list):
+def register_wfh(token: str, user_id: str, dates: list, reason: str):
     """Register WFH"""
     payload = {
         "Type": "day",
@@ -152,7 +152,7 @@ def register_wfh(token: str, user_id: str, dates: list):
         "PhuongTienDiChuyen": "",
         "LoaiCongTac": 6,
         "GhiChu": "",
-        "LyDo": "",
+        "LyDo": reason,
         "TenCty": "",
         "DiaChiCT": "",
         "NguoiLienHe": "",
@@ -200,8 +200,6 @@ def ez_master(script_args: argparse.Namespace):
                 raise EzException("You must enter from_time in OT.")
             if not script_args.to_time:
                 raise EzException("You must enter to_time in OT.")
-            if not script_args.ot_reason:
-                raise EzException("You must leave a reason when applying for OT.")
             from_time = time.strptime(script_args.from_time, EZ_TIME_FORMAT)
             to_time = time.strptime(script_args.to_time, EZ_TIME_FORMAT)
             register_ot(
@@ -211,11 +209,11 @@ def ez_master(script_args: argparse.Namespace):
                 from_time=time.strftime(EZ_TIME_FORMAT, from_time),
                 to_time=time.strftime(EZ_TIME_FORMAT, to_time),
                 ot_type= OTType.PLAN.value if script_args.ot_type == OTType.PLAN.name else OTType.ADDITIONAL.value,
-                reason=script_args.ot_reason,
+                reason=script_args.reason,
             )
         case EzType.WFH.value:
             register_wfh(
-                token=script_args.tokem, user_id=user_id, dates=dates
+                token=script_args.token, user_id=user_id, dates=dates, reason=script_args.reason
             )
         case _:
             pass
@@ -254,10 +252,10 @@ parser.add_argument(
     "-tt", "--to-time", dest="to_time", help="The time for the end of an important activity. E.g: 11:00 or 22:00"
 )
 parser.add_argument(
-    "--ot-reason", dest="ot_reason", help="The reason when the user register OT. E.g: Weekly meeting"
+    "--ot-type", dest="ot_type", choices=[OTType.ADDITIONAL.name, OTType.PLAN.name], help="The OT type. Default is PLAN"
 )
 parser.add_argument(
-    "--ot-type", dest="ot_type", choices=[OTType.ADDITIONAL.name, OTType.PLAN.name], help="The OT type."
+    "--reason", dest="reason", default="", help="The reason when the user register OT or WFH. E.g: Weekly meeting"
 )
 args = parser.parse_args()
 
