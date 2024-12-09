@@ -3,7 +3,6 @@ import argparse
 import enum
 import getpass
 import time
-from ast import Pass
 from datetime import datetime, timedelta
 
 import httpx
