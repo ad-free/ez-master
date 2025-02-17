@@ -4,6 +4,7 @@ import enum
 import getpass
 import time
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import httpx
 from pyfiglet import Figlet
@@ -45,7 +46,9 @@ class Password:
 
     def __init__(self, value):
         if value == self.DEFAULT:
-            value = getpass.getpass("Your password: ")
+            value = get_password_from_file()
+            if not value:
+                value = getpass.getpass("Your password: ")
         self.value = value
 
     def __str__(self):
@@ -78,6 +81,23 @@ def login(username: str, password: Password):
     if response.status_code != 200:
         raise EzException("[!] Couldn't login into EZ.")
     return response.json()["Token"]
+
+
+def get_password_from_file(password_file: str = "password.txt"):
+    """Get the password from a file and using it for the next login
+
+    Args:
+        password_file (str): The password file
+
+    Returns:
+        The password
+    """
+    password_file_exists = Path(password_file)
+
+    if password_file_exists.is_file() and password_file_exists.exists():
+        with open(str(password_file), "r", encoding="utf-8") as pwd_file:
+            return pwd_file.read().strip()
+    return None
 
 
 def get_user_id(token: str) -> str:
