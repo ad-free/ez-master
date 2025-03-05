@@ -3,7 +3,7 @@ import argparse
 import enum
 import getpass
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import httpx
@@ -19,6 +19,7 @@ EZ_APIS = {
     "profile": f"{EZ_HOST}/api/HR_Employee/GetProfile",
     "wfh": f"{EZ_HOST}/api/HR_Mission/RegisterMission",
     "ot": f"{EZ_HOST}/api/TA_EmployeeOT/RegisterOT",
+    "salary_info": f"{EZ_HOST}/api/PR_SalaryInfo/GetPayslipDetail",
 }
 
 
@@ -31,6 +32,7 @@ class EzType(enum.Enum):
     OT = "OVER_TIME"
     OOO = "OUT_OF_OFFICE"
     WFH = "WORK_FROM_HOME"
+    SALARY = "SALARY"
 
 
 class OTType(enum.Enum):
@@ -234,22 +236,48 @@ def register_wfh(token: str, user_id: str, dates: list, reason: str):
     print(f"[!] WFH registration successful for {user_id}")
 
 
+def download_salary_file(token: str, date: str = datetime.now(timezone.utc).strftime("%Y-%m")):
+    """Download salary file
+
+    Args:
+        token (str): The token
+        date (str, optional): The date of salary. Defaults to datetime.now(timezone.utc).strftime("%Y-%m").
+    """
+    payload = {"monthYear": date}
+    get_salary_info = httpx.get(
+        url=EZ_APIS["salary_info"], params=payload, headers={"Authorization": f"bearer {token}"}, timeout=10
+    )
+    get_salary_info.raise_for_status()
+
+    salary_info = get_salary_info.json().get("Data")
+
+    response = httpx.get(url=salary_info["Path"], headers={"Authorization": f"bearer {token}"})
+    response.raise_for_status()
+
+    with open(f"salary_{date}.pdf", "wb") as file:
+        file.write(response.content)
+
+
 def ez_master(script_args: argparse.Namespace):
     """Ez Master Script
 
     Args:
         script_args: ArgumentParser
     """
+    dates = []
     token = login(username=script_args.username, password=script_args.password)
     user_id = get_user_id(token=token)
 
-    from_date = datetime.strptime(script_args.from_date, EZ_DATE_FORMAT)
-    to_date = datetime.strptime(script_args.to_date, EZ_DATE_FORMAT)
+    if not script_args.is_download_salary:
+        if not script_args.from_date or script_args.to_date:
+            raise EzException("[!] --from-date and --to-date are required.")
+        from_date = datetime.strptime(script_args.from_date, EZ_DATE_FORMAT)
+        to_date = datetime.strptime(script_args.to_date, EZ_DATE_FORMAT)
 
-    if from_date > to_date:
-        raise EzException("[!] You must pick to_date greater than from_date.")
+        if from_date > to_date:
+            raise EzException("[!] You must pick to_date greater than from_date.")
 
-    dates = [(from_date + timedelta(days=day)).isoformat() for day in range((to_date - from_date).days + 1)]
+        dates = [(from_date + timedelta(days=day)).isoformat() for day in range((to_date - from_date).days + 1)]
 
     match(script_args.type):
         case EzType.OT.value:
@@ -272,6 +300,10 @@ def ez_master(script_args: argparse.Namespace):
             register_wfh(
                 token=token, user_id=user_id, dates=dates, reason=script_args.reason
             )
+        case EzType.SALARY.value:
+            print("[!] Downloading the salary file.")
+            download_salary_file(token=token, date=script_args.salary_date)
+            print("[!] Downloaded the salary file successful.")
         case _:
             pass
 
@@ -282,7 +314,7 @@ parser = argparse.ArgumentParser(
     usage=argparse.SUPPRESS,
 )
 parser.add_argument(
-    "-t", "--type", choices=[EzType.OOO.value, EzType.OT.value, EzType.WFH.value], required=True
+    "-t", "--type", choices=[EzType.OOO.value, EzType.OT.value, EzType.WFH.value, EzType.SALARY.value], required=True
 )
 parser.add_argument("-u", "--username", dest="username", help="Your username", required=True)
 parser.add_argument(
@@ -292,14 +324,12 @@ parser.add_argument(
     "-fd",
     "--from-date",
     dest="from_date",
-    required=True,
     help="The date for the start of an important activity. E.g: 2024-09-20"
 )
 parser.add_argument(
     "-td",
     "--to-date",
     dest="to_date",
-    required=True,
     help="The date for the end of an important activity. E.g: 2024-09-25"
 )
 parser.add_argument(
@@ -316,6 +346,18 @@ parser.add_argument(
 )
 parser.add_argument(
     "--reason", dest="reason", default="", help="The reason when the user register OT or WFH. E.g: Weekly meeting"
+)
+parser.add_argument(
+    "--is-download-salary",
+    dest="is_download_salary",
+    action="store_true",
+    help="Download the salary file",
+)
+parser.add_argument(
+    "--salary-date",
+    dest="salary_date",
+    default=datetime.now(timezone.utc).strftime("%Y-%m"),
+    help="The salary date. E.g: 2025-03"
 )
 args = parser.parse_args()
 
