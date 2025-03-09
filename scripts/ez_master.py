@@ -1,4 +1,5 @@
-""" EZ Tool"""
+"""EZ Tool"""
+
 import argparse
 import enum
 import getpass
@@ -29,6 +30,7 @@ class EzException(Exception):
 
 class EzType(enum.Enum):
     """EZ TYPE"""
+
     OT = "OVER_TIME"
     OOO = "OUT_OF_OFFICE"
     WFH = "WORK_FROM_HOME"
@@ -37,6 +39,7 @@ class EzType(enum.Enum):
 
 class OTType(enum.Enum):
     """OverTime Type"""
+
     PLAN = 1
     ADDITIONAL = 0
 
@@ -68,7 +71,7 @@ def login(username: str, password: Password):
         EzException: Couldn't login into Ez server
 
     Returns:
-        Token 
+        Token
     """
     payload = {
         "UserName": username,
@@ -143,7 +146,7 @@ def register_ot(
             "FromTime": f"{from_time}:00",
             "ToTime": f"{to_time}:00",
             "IsTomorrowFromTime": False,
-            "IsTomorrowToTime": False
+            "IsTomorrowToTime": False,
         },
         "Khoang2": None,
         "Khoang3": None,
@@ -159,28 +162,21 @@ def register_ot(
         "WorkingPlace": "1",
         "NotifyEmail": [],
         "UserRequest": [user_id],
-        "OTType": ot_type, 	# 1: Plan, 0: Additional
-        "Reason1": {
-            "GroupReason": None,
-            "DetailReason": None,
-            "NoteOT": ""
-        },
-        "Reason2": {
-            "GroupReason": None,
-            "DetailReason": None,
-            "NoteOT": ""
-        },
-        "Reason3": {
-            "GroupReason": None,
-            "DetailReason": None,
-            "NoteOT": ""
-        }
+        "OTType": ot_type,  # 1: Plan, 0: Additional
+        "Reason1": {"GroupReason": None, "DetailReason": None, "NoteOT": ""},
+        "Reason2": {"GroupReason": None, "DetailReason": None, "NoteOT": ""},
+        "Reason3": {"GroupReason": None, "DetailReason": None, "NoteOT": ""},
     }
 
     print(f"[!] Registering OT for {user_id}")
     for date in dates:
         payload = {**payload, "From": f"{date}.000Z", "To": f"{date}.000Z"}
-        response = httpx.post(url=EZ_APIS["ot"], json=payload, headers={"Authorization": f"bearer {token}"}, timeout=10)
+        response = httpx.post(
+            url=EZ_APIS["ot"],
+            json=payload,
+            headers={"Authorization": f"bearer {token}"},
+            timeout=10,
+        )
         if response.status_code != 200:
             print(response.content)
             raise EzException("Couldn't register OT on Ez Tool")
@@ -218,7 +214,7 @@ def register_wfh(token: str, user_id: str, dates: list, reason: str):
         "NguoiLienHe": "",
         "ThongTinLienLac": "",
         "NotifyEmail": [],
-        "UserRequest": [user_id]
+        "UserRequest": [user_id],
     }
 
     print(f"[!] Registing WFH for {user_id}")
@@ -226,7 +222,10 @@ def register_wfh(token: str, user_id: str, dates: list, reason: str):
     for date in dates:
         payload = {**payload, "From": f"{date}.000Z", "To": f"{date}.000Z"}
         response = httpx.post(
-            url=EZ_APIS["wfh"], json=payload, headers={"Authorization": f"bearer {token}"}, timeout=10
+            url=EZ_APIS["wfh"],
+            json=payload,
+            headers={"Authorization": f"bearer {token}"},
+            timeout=10,
         )
 
         if response.status_code != 200:
@@ -236,7 +235,9 @@ def register_wfh(token: str, user_id: str, dates: list, reason: str):
     print(f"[!] WFH registration successful for {user_id}")
 
 
-def download_salary_file(token: str, date: str = datetime.now(timezone.utc).strftime("%Y-%m")):
+def download_salary_file(
+    token: str, date: str = datetime.now(timezone.utc).strftime("%Y-%m")
+):
     """Download salary file
 
     Args:
@@ -245,13 +246,18 @@ def download_salary_file(token: str, date: str = datetime.now(timezone.utc).strf
     """
     payload = {"monthYear": date}
     get_salary_info = httpx.get(
-        url=EZ_APIS["salary_info"], params=payload, headers={"Authorization": f"bearer {token}"}, timeout=10
+        url=EZ_APIS["salary_info"],
+        params=payload,
+        headers={"Authorization": f"bearer {token}"},
+        timeout=10,
     )
     get_salary_info.raise_for_status()
 
     salary_info = get_salary_info.json().get("Data")
 
-    response = httpx.get(url=salary_info["Path"], headers={"Authorization": f"bearer {token}"})
+    response = httpx.get(
+        url=salary_info["Path"], headers={"Authorization": f"bearer {token}"}
+    )
     response.raise_for_status()
 
     with open(f"salary_{date}.pdf", "wb") as file:
@@ -277,9 +283,12 @@ def ez_master(script_args: argparse.Namespace):
         if from_date > to_date:
             raise EzException("[!] You must pick to_date greater than from_date.")
 
-        dates = [(from_date + timedelta(days=day)).isoformat() for day in range((to_date - from_date).days + 1)]
+        dates = [
+            (from_date + timedelta(days=day)).isoformat()
+            for day in range((to_date - from_date).days + 1)
+        ]
 
-    match(script_args.type):
+    match script_args.type:
         case EzType.OT.value:
             if not script_args.from_time:
                 raise EzException("You must enter from_time in OT.")
@@ -293,7 +302,9 @@ def ez_master(script_args: argparse.Namespace):
                 dates=dates,
                 from_time=time.strftime(EZ_TIME_FORMAT, from_time),
                 to_time=time.strftime(EZ_TIME_FORMAT, to_time),
-                ot_type= OTType.PLAN.value if script_args.ot_type == OTType.PLAN.name else OTType.ADDITIONAL.value,
+                ot_type=OTType.PLAN.value
+                if script_args.ot_type == OTType.PLAN.name
+                else OTType.ADDITIONAL.value,
                 reason=script_args.reason,
             )
         case EzType.WFH.value:
@@ -314,38 +325,57 @@ parser = argparse.ArgumentParser(
     usage=argparse.SUPPRESS,
 )
 parser.add_argument(
-    "-t", "--type", choices=[EzType.OOO.value, EzType.OT.value, EzType.WFH.value, EzType.SALARY.value], required=True
+    "-t",
+    "--type",
+    choices=[EzType.OOO.value, EzType.OT.value, EzType.WFH.value, EzType.SALARY.value],
+    required=True,
 )
-parser.add_argument("-u", "--username", dest="username", help="Your username", required=True)
 parser.add_argument(
-    "-p", "--password", dest="password", type=Password, help="Your password", default=Password.DEFAULT
+    "-u", "--username", dest="username", help="Your username", required=True
+)
+parser.add_argument(
+    "-p",
+    "--password",
+    dest="password",
+    type=Password,
+    help="Your password",
+    default=Password.DEFAULT,
 )
 parser.add_argument(
     "-fd",
     "--from-date",
     dest="from_date",
-    help="The date for the start of an important activity. E.g: 2024-09-20"
+    help="The date for the start of an important activity. E.g: 2024-09-20",
 )
 parser.add_argument(
     "-td",
     "--to-date",
     dest="to_date",
-    help="The date for the end of an important activity. E.g: 2024-09-25"
+    help="The date for the end of an important activity. E.g: 2024-09-25",
 )
 parser.add_argument(
     "-ft",
     "--from-time",
     dest="from_time",
-    help="The time for the start of an important activity. E.g: 10:30 or 20:00"
+    help="The time for the start of an important activity. E.g: 10:30 or 20:00",
 )
 parser.add_argument(
-    "-tt", "--to-time", dest="to_time", help="The time for the end of an important activity. E.g: 11:00 or 22:00"
+    "-tt",
+    "--to-time",
+    dest="to_time",
+    help="The time for the end of an important activity. E.g: 11:00 or 22:00",
 )
 parser.add_argument(
-    "--ot-type", dest="ot_type", choices=[OTType.ADDITIONAL.name, OTType.PLAN.name], help="The OT type. Default is PLAN"
+    "--ot-type",
+    dest="ot_type",
+    choices=[OTType.ADDITIONAL.name, OTType.PLAN.name],
+    help="The OT type. Default is PLAN",
 )
 parser.add_argument(
-    "--reason", dest="reason", default="", help="The reason when the user register OT or WFH. E.g: Weekly meeting"
+    "--reason",
+    dest="reason",
+    default="",
+    help="The reason when the user register OT or WFH. E.g: Weekly meeting",
 )
 parser.add_argument(
     "--is-download-salary",
@@ -357,7 +387,7 @@ parser.add_argument(
     "--salary-date",
     dest="salary_date",
     default=datetime.now(timezone.utc).strftime("%Y-%m"),
-    help="The salary date. E.g: 2025-03"
+    help="The salary date. E.g: 2025-03",
 )
 args = parser.parse_args()
 
