@@ -275,7 +275,7 @@ def ez_master(script_args: argparse.Namespace):
     user_id = get_user_id(token=token)
 
     if not script_args.is_download_salary:
-        if not script_args.from_date or script_args.to_date:
+        if not script_args.from_date or not script_args.to_date:
             raise EzException("[!] --from-date and --to-date are required.")
         from_date = datetime.strptime(script_args.from_date, EZ_DATE_FORMAT)
         to_date = datetime.strptime(script_args.to_date, EZ_DATE_FORMAT)
