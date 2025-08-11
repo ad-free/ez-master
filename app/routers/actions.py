@@ -3,15 +3,26 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import List
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.clients.ez import EzClient
 from app.core.exceptions import EzException
-from app.core.types import OTType
+from app.core.types import OTBenefitType, OTType
 from app.schemas.requests import RegisterOTRequest, RegisterWFHRequest
 
 
 router = APIRouter(prefix="", tags=["actions"])
+security = HTTPBearer(auto_error=False)
+
+
+def get_ez_bearer_token(credentials: HTTPAuthorizationCredentials | None, request: Request) -> str:
+    if credentials and credentials.scheme.lower() == "bearer" and credentials.credentials:
+        return credentials.credentials
+    token = request.cookies.get("ez_token")
+    if token:
+        return token
+    raise HTTPException(status_code=401, detail="Missing bearer token. Login to get a token or provide Authorization header.")
 
 
 def _dates_between_inclusive(from_date: str, to_date: str) -> List[str]:
@@ -28,11 +39,17 @@ def _dates_between_inclusive(from_date: str, to_date: str) -> List[str]:
 
 
 @router.post("/wfh/register")
-def register_wfh(req: RegisterWFHRequest):
+def register_wfh(
+    req: RegisterWFHRequest,
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+    request: Request = None,
+):
     """Register Work From Home for a date range.
 
     Request body:
-    - username, password: EZ credentials
+    Authentication:
+    - Use HTTP Bearer in the Authorization header. In Swagger, click "Authorize" and enter
+      `Bearer <token>` obtained from `/login`.
     - from_date, to_date: Inclusive date range in YYYY-MM-DD
     - reason: Optional reason text
 
@@ -50,7 +67,7 @@ def register_wfh(req: RegisterWFHRequest):
     """
     client = EzClient()
     try:
-        token = client.login(req.username, req.password)
+        token = get_ez_bearer_token(credentials, request)
         user_id = client.get_user_id(token)
         dates = _dates_between_inclusive(req.from_date, req.to_date)
         client.register_wfh(token=token, user_id=user_id, dates=dates, reason=req.reason)
@@ -60,14 +77,21 @@ def register_wfh(req: RegisterWFHRequest):
 
 
 @router.post("/ot/register")
-def register_ot(req: RegisterOTRequest):
+def register_ot(
+    req: RegisterOTRequest,
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+    request: Request = None,
+):
     """Register Overtime for a date range and time window.
 
     Request body:
-    - username, password: EZ credentials
+    Authentication:
+    - Use HTTP Bearer in the Authorization header. In Swagger, click "Authorize" and enter
+      `Bearer <token>` obtained from `/login`.
     - from_date, to_date: Inclusive date range in YYYY-MM-DD
     - from_time, to_time: HH:MM (24h) time window applied to each date
     - ot_type: PLAN or ADDITIONAL
+    - ot_benefit_type: DILIGENCE, COMPENSATION, or SALARY
     - reason: Optional reason text
 
     Behavior:
@@ -84,10 +108,11 @@ def register_ot(req: RegisterOTRequest):
     """
     client = EzClient()
     try:
-        token = client.login(req.username, req.password)
+        token = get_ez_bearer_token(credentials, request)
         user_id = client.get_user_id(token)
         dates = _dates_between_inclusive(req.from_date, req.to_date)
-        ot_type_value = OTType.PLAN if req.ot_type == "PLAN" else OTType.ADDITIONAL
+        ot_type_value = (OTType.PLAN if req.ot_type == "PLAN" else OTType.ADDITIONAL).value
+        ot_benefit_value = OTBenefitType[req.ot_benefit_type]
         client.register_ot(
             token=token,
             user_id=user_id,
@@ -95,6 +120,7 @@ def register_ot(req: RegisterOTRequest):
             from_time=req.from_time,
             to_time=req.to_time,
             ot_type=ot_type_value,
+            ot_benefit_type=ot_benefit_value,
             reason=req.reason,
         )
         return {"status": "ok", "user_id": user_id, "dates": dates}

@@ -6,6 +6,7 @@ from typing import Iterable, Tuple
 import httpx
 
 from app.core.constants import EZ_APIS
+from app.core.types import OTBenefitType
 from app.core.exceptions import EzException
 
 
@@ -19,13 +20,13 @@ class EzClient:
             raise EzException("Couldn't login into EZ.")
         return response.json()["Token"]
 
-    def get_user_id(self, token: str) -> str:
+    def get_user_profile(self, token: str) -> dict:
         response = httpx.get(
             url=EZ_APIS["profile"], headers={"Authorization": f"bearer {token}"}, timeout=10
         )
         if response.status_code != 200:
             raise EzException("Failed to get the user profile.")
-        return response.json()["Data"]["ID"]
+        return response.json()["Data"]
 
     def register_wfh(self, *, token: str, user_id: str, dates: Iterable[str], reason: str) -> None:
         base_payload = {
@@ -71,6 +72,7 @@ class EzClient:
         from_time: str,
         to_time: str,
         ot_type: int,
+        ot_benefit_type: OTBenefitType = OTBenefitType.DILIGENCE,
         reason: str = "",
     ) -> None:
         base_payload = {
@@ -91,9 +93,9 @@ class EzClient:
             "OTIndex1": 0,
             "OTIndex2": 0,
             "OTIndex3": 0,
-            "OTExamineFor1": 0,
-            "OTExamineFor2": 0,
-            "OTExamineFor3": 0,
+            "OTExamineFor1": ot_benefit_type.value,
+            "OTExamineFor2": ot_benefit_type.value,
+            "OTExamineFor3": ot_benefit_type.value,
             "ScaleForSalary1": 0,
             "ScaleForSalary2": 0,
             "ScaleForSalary3": 0,

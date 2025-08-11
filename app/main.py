@@ -7,7 +7,14 @@ from app.routers import actions as actions_router
 from app.routers import salary as salary_router
 
 
-app = FastAPI(title="EZ Master API", version="1.0.0", docs_url="/")
+app = FastAPI(
+    title="EZ Master API",
+    version="1.0.0",
+    docs_url="/",
+    swagger_ui_parameters={
+        "persistAuthorization": True,
+    },
+)
 
 
 app.include_router(auth_router.router)

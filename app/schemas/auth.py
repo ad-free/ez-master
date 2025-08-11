@@ -10,6 +10,16 @@ class LoginRequest(BaseModel):
     password: str = Field(..., description="Your password")
 
 
+class ProfileResponse(BaseModel):
+    ID: str
+    Email: str
+    LastName: str
+    FirstName: str
+    ChucVu: str
+    ChucDanh: str
+    PhongBan: str
+
+
 class LoginResponse(BaseModel):
     token: str
 
