@@ -1,0 +1,13 @@
+# Exported from Render on 2025-08-11T04:15:19Z
+services:
+- type: web
+  name: ez-master
+  runtime: python
+  repo: https://github.com/ad-free/ez-master
+  plan: free
+  region: singapore
+  buildCommand: pip install -r requirements.txt
+  startCommand: uvicorn --host 0.0.0.0 --port 8080 app.main:app
+  healthCheckPath: /healthcheck
+  autoDeployTrigger: commit
+version: "1"

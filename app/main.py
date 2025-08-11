@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from app.routers import auth as auth_router
 from app.routers import actions as actions_router
 from app.routers import salary as salary_router
+from app.routers import common as common_router
 
 
 app = FastAPI(
@@ -20,5 +21,5 @@ app = FastAPI(
 app.include_router(auth_router.router)
 app.include_router(actions_router.router)
 app.include_router(salary_router.router)
-
+app.include_router(common_router.router)
 
