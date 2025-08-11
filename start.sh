@@ -9,7 +9,7 @@ export FROM_TIME=${FROM_TIME:-"21:00"}
 export TO_TIME=${TO_TIME:-"23:00"}
 
 echo "[!] Activating python environment..."
-source venv/Scripts/activate
+source .venv/Scripts/activate
 
 echo "[!] Running the script..."
 

@@ -4,4 +4,10 @@ __pycache__
 *.log
 *.txt
 
+.vscode
+.idea
+.venv
+venv
+__pycache__
+
 password
