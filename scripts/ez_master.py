@@ -43,6 +43,13 @@ class OTType(enum.Enum):
     PLAN = 1
     ADDITIONAL = 0
 
+class OTBenefitType(enum.Enum):
+    """OT Benifit type"""
+
+    SALARY = 0
+    COMPENSATION = 1
+    DILIGENCE = 2
+
 
 class Password:
     """Ask for the password"""
@@ -132,6 +139,7 @@ def register_ot(
     from_time: str,
     to_time: str,
     ot_type: int = OTType.PLAN.value,
+    ot_benifit_type: OTBenefitType = OTBenefitType.DILIGENCE,
     reason: str = "",
 ):
     """Register Overtime"""
@@ -153,13 +161,13 @@ def register_ot(
         "OTIndex1": 0,
         "OTIndex2": 0,
         "OTIndex3": 0,
-        "OTExamineFor1": 0,
-        "OTExamineFor2": 0,
-        "OTExamineFor3": 0,
+        "OTExamineFor1": ot_benefit_type.value,
+        "OTExamineFor2": ot_benefit_type.value,
+        "OTExamineFor3": ot_benefit_type.value,
         "ScaleForSalary1": 0,
         "ScaleForSalary2": 0,
         "ScaleForSalary3": 0,
-        "WorkingPlace": "1",
+        "WorkingPlace": "1",  # 1: At home, 0: At office
         "NotifyEmail": [],
         "UserRequest": [user_id],
         "OTType": ot_type,  # 1: Plan, 0: Additional
