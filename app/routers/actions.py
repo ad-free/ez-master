@@ -4,25 +4,16 @@ from datetime import datetime, timedelta
 from typing import List
 
 from fastapi import APIRouter, HTTPException, Depends, Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials
 
 from app.clients.ez import EzClient
 from app.core.exceptions import EzException
 from app.core.types import OTBenefitType, OTType
 from app.schemas.requests import RegisterOTRequest, RegisterWFHRequest
+from app.routers.common import security, get_ez_bearer_token
 
 
 router = APIRouter(prefix="", tags=["actions"])
-security = HTTPBearer(auto_error=False)
-
-
-def get_ez_bearer_token(credentials: HTTPAuthorizationCredentials | None, request: Request) -> str:
-    if credentials and credentials.scheme.lower() == "bearer" and credentials.credentials:
-        return credentials.credentials
-    token = request.cookies.get("ez_token")
-    if token:
-        return token
-    raise HTTPException(status_code=401, detail="Missing bearer token. Login to get a token or provide Authorization header.")
 
 
 def _dates_between_inclusive(from_date: str, to_date: str) -> List[str]:

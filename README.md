@@ -1,156 +1,206 @@
-EZ Master API
+# EZ Master API
 
-A FastAPI application that wraps EZ Tool endpoints used in `scripts/ez_master.py` into HTTP APIs.
+A production-ready FastAPI service exposing a simple HTTP API over the EZ Tool. It mirrors the core functionality of `scripts/ez_master.py` and adds token-based auth, OpenAPI docs, and deployment artifacts.
+
+[![Release Notes](https://github.com/ad-free/ez-master/actions/workflows/release-notes.yml/badge.svg)](https://github.com/ad-free/ez-master/actions/workflows/release-notes.yml)
+![Python](https://img.shields.io/badge/python-3.12-blue.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.116.1-009688?logo=fastapi)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
+
+## Table of Contents
+
+- [EZ Master API](#ez-master-api)
+  - [Table of Contents](#table-of-contents)
+  - [Features](#features)
+  - [Requirements](#requirements)
+  - [Local setup](#local-setup)
+  - [Authentication](#authentication)
+  - [API reference (selected)](#api-reference-selected)
+    - [POST /login](#post-login)
+    - [GET /profile](#get-profile)
+    - [POST /wfh/register](#post-wfhregister)
+    - [POST /ot/register](#post-otregister)
+    - [POST /salary/download](#post-salarydownload)
+  - [Docker](#docker)
+  - [Deploy on Render](#deploy-on-render)
+  - [CLI (optional)](#cli-optional)
+  - [CI/CD](#cicd)
+  - [Notes](#notes)
 
 ## Features
-- Login to obtain bearer token
-- Get profile (user_id) using bearer token
+
+- Login to obtain bearer token (also set as an HttpOnly cookie for Swagger convenience)
+- Get full EZ profile using bearer token
 - Register Work From Home (WFH) over a date range
 - Register Overtime (OT) over a date range and time window
 - Download salary PDF for a given month
 
 ## Requirements
-- Python 3.10+
 
-## Setup
+- Python 3.12+
+
+## Local setup
+
 ```bash
 python -m venv .venv
 # Windows PowerShell
-. .venv\\Scripts\\Activate.ps1
+. .venv\Scripts\Activate.ps1
 # macOS/Linux
 # source .venv/bin/activate
 
 pip install -r requirements.txt
-```
-
-## Run
-```bash
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
-- Swagger UI: http://127.0.0.1:8000/
 
-## Endpoints
+- Swagger UI: <http://127.0.0.1:8000/>
+
+## Authentication
+
+- POST `/login` with EZ credentials returns a `token` and sets `ez_token` cookie (HttpOnly, SameSite=Lax).
+- Subsequent calls can authenticate either by:
+  - Authorization header: `Authorization: Bearer <token>`
+  - Or the `ez_token` cookie set by `/login` (Swagger works without manually pasting headers).
+- Swagger is configured to persist authorization between refreshes.
+
+## API reference (selected)
 
 ### POST /login
-Authenticate with EZ and return a bearer token.
 
-Request body:
+Authenticate and return a bearer token.
+
+Request
+
 ```json
-{
-  "username": "your-email@example.com",
-  "password": "your-password"
-}
+{ "username": "your-email@example.com", "password": "your-password" }
 ```
 
-Response body:
+Response
+
 ```json
-{
-  "token": "<bearer-token>"
-}
+{ "token": "<bearer-token>" }
 ```
-
-Errors:
-- 401: Invalid credentials
-
----
 
 ### GET /profile
-Get the current user's EZ profile identifier.
 
-Authentication:
-- Use HTTP Bearer in the Authorization header. In Swagger, click Authorize and enter `Bearer <token>`.
+Return the current user's EZ profile.
 
-Response body:
+Auth
+
+- Use bearer header or rely on the `ez_token` cookie from `/login`.
+
+Response (example)
+
 ```json
 {
-  "user_id": "<EZ_USER_ID>"
+  "ID": "<EZ_USER_ID>",
+  "Email": "user@example.com",
+  "LastName": "Doe",
+  "FirstName": "John",
+  "ChucVu": "...",
+  "ChucDanh": "...",
+  "PhongBan": "..."
 }
 ```
-
-Errors:
-- 401: Invalid or expired token
-
----
 
 ### POST /wfh/register
-Register Work From Home for a date range.
 
-Request body:
+Register WFH for an inclusive date range.
+
+Auth
+
+- Bearer header or `ez_token` cookie
+
+Request
+
 ```json
-{
-  "username": "your-email@example.com",
-  "password": "your-password",
-  "from_date": "2024-09-20",
-  "to_date": "2024-09-22",
-  "reason": "WFH as planned"
-}
+{ "from_date": "2025-01-01", "to_date": "2025-01-03", "reason": "WFH as planned" }
 ```
 
-Response body:
+Response
+
 ```json
-{
-  "status": "ok",
-  "user_id": "<EZ_USER_ID>",
-  "dates": ["2024-09-20T00:00:00", "2024-09-21T00:00:00", "2024-09-22T00:00:00"]
-}
+{ "status": "ok", "user_id": "<EZ_USER_ID>", "dates": ["2025-01-01T00:00:00", "..."] }
 ```
-
-Errors:
-- 400: Validation failures or EZ API rejection
-
----
 
 ### POST /ot/register
-Register Overtime for a date range and time window.
 
-Request body:
+Register OT for an inclusive date range and time window.
+
+Auth
+
+- Bearer header or `ez_token` cookie
+
+Request
+
 ```json
 {
-  "username": "your-email@example.com",
-  "password": "your-password",
-  "from_date": "2024-09-20",
-  "to_date": "2024-09-20",
-  "from_time": "21:00",
-  "to_time": "23:00",
+  "from_date": "2025-01-01",
+  "to_date": "2025-01-03",
+  "from_time": "18:00",
+  "to_time": "20:00",
   "ot_type": "PLAN",
-  "reason": "Weekly meeting"
+  "ot_benefit_type": "DILIGENCE",
+  "reason": "Release prep"
 }
 ```
 
-Response body:
+Response
+
 ```json
-{
-  "status": "ok",
-  "user_id": "<EZ_USER_ID>",
-  "dates": ["2024-09-20T00:00:00"]
-}
+{ "status": "ok", "user_id": "<EZ_USER_ID>", "dates": ["2025-01-01T00:00:00", "..."] }
 ```
-
-Errors:
-- 400: Validation failures or EZ API rejection
-
----
 
 ### POST /salary/download
-Download the salary PDF for a given month.
 
-Request body:
-```json
-{
-  "username": "your-email@example.com",
-  "password": "your-password",
-  "date": "2025-03"
-}
+Download the salary PDF for the specified month.
+
+Auth
+
+- Bearer header or `ez_token` cookie
+
+Parameters
+
+- `date` (optional, YYYY-MM). Defaults to current month (UTC) if omitted.
+
+Response
+
+- application/pdf stream with filename `salary_YYYY-MM.pdf`
+
+## Docker
+
+Build and run using the provided Dockerfile (Python 3.12-slim base):
+
+```bash
+docker build -t ez-master .
+docker run -p 8000:8000 ez-master
+# or
+docker run -e PORT=8080 -p 8080:8080 ez-master
 ```
 
-Response:
-- application/pdf stream with a suggested filename like `salary_YYYY-MM.pdf`
+## Deploy on Render
 
-Errors:
-- 400: EZ API rejection or data not available
+This repo includes a minimal `render.yaml` (Python runtime) to ease deployment.
+
+- Health check: `/healthcheck`
+- Start command: `uvicorn --host 0.0.0.0 --port 8080 app.main:app`
+- Steps:
+  - Connect your GitHub repo on Render
+  - Create a new Web Service using the repo
+  - Render will build with `pip install -r requirements.txt` and start the app
+
+## CLI (optional)
+
+Original script remains available:
+
+```bash
+python scripts/ez_master.py --help
+```
+
+## CI/CD
+
+- A GitHub Action updates release notes automatically on each published release.
 
 ## Notes
-- The API delegates to the same external EZ endpoints and payloads as the original CLI script.
-- Dates must be `YYYY-MM-DD`; times `HH:MM` (24-hour).
-- For local development, Uvicorn serves HTTP. Use http:// URLs unless you run Uvicorn with TLS flags.
 
+- Dates: `YYYY-MM-DD`; times: `HH:MM` (24-hour).
+- The API sends the same payloads to EZ as the CLI, with additional validation.

@@ -1,0 +1,72 @@
+name: Generate Release Notes
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  release-notes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate and update release notes
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const currentRelease = context.payload.release;
+            const currentTag = currentRelease.tag_name;
+
+            // Find previous published release (if any)
+            const releases = await github.paginate(github.rest.repos.listReleases, { owner, repo, per_page: 100 });
+            const published = releases
+              .filter(r => !r.draft && !r.prerelease)
+              .sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+            const currentIdx = published.findIndex(r => r.id === currentRelease.id);
+            let baseRef;
+            if (currentIdx >= 0 && currentIdx + 1 < published.length) {
+              baseRef = published[currentIdx + 1].tag_name; // previous release tag
+            } else {
+              // fallback to default branch
+              const repoInfo = await github.rest.repos.get({ owner, repo });
+              baseRef = repoInfo.data.default_branch;
+            }
+
+            // Compare commits between baseRef..currentTag
+            let compare;
+            try {
+              compare = await github.rest.repos.compareCommitsWithBasehead({
+                owner,
+                repo,
+                basehead: `${baseRef}...${currentTag}`,
+              });
+            } catch (e) {
+              core.warning(`Compare failed (${baseRef}...${currentTag}): ${e.message}`);
+              compare = { data: { commits: [] } };
+            }
+
+            const commits = (compare.data.commits || []).map(c => {
+              const sha = c.sha.substring(0,7);
+              const date = (c.commit && c.commit.author && c.commit.author.date) ? c.commit.author.date.substring(0,10) : '';
+              const msg = (c.commit && c.commit.message) ? c.commit.message.split('\n')[0] : '';
+              const author = (c.author && c.author.login) ? c.author.login : (c.commit && c.commit.author && c.commit.author.name ? c.commit.author.name : 'unknown');
+              return `- ${date} — ${sha} — ${msg} (author: ${author})`;
+            });
+
+            const header = `## Changes since ${baseRef}`;
+            const body = [header, '', ...commits].join('\n');
+
+            await github.rest.repos.updateRelease({
+              owner,
+              repo,
+              release_id: currentRelease.id,
+              body,
+            });
