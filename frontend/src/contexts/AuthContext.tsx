@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { ProfileResponse } from '../types/api';
-import { apiClient } from '../services/api';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
+import type { ProfileResponse } from '../types/api';
+import { apiClient } from '../services/apiClient';
 
 interface AuthContextType {
   isAuthenticated: boolean;

@@ -8,14 +8,13 @@ import {
   Typography,
   Alert,
   CircularProgress,
-  Grid,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
   Chip,
-  Divider,
   Paper,
+  Divider,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
@@ -151,15 +150,15 @@ const OTRegistrationForm: React.FC<OTFormProps> = ({ onSubmit, isLoading }) => {
           )}
 
           <Box component="form" onSubmit={handleSubmit}>
-            <Grid container spacing={3}>
+            <Box sx={{ display: 'grid', gap: 3 }}>
               {/* Date Range */}
-              <Grid item xs={12}>
+              <Box>
                 <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
                   Date Range
                 </Typography>
-              </Grid>
+              </Box>
               
-              <Grid item xs={12} sm={6}>
+              <Box sx={{ gridColumn: { xs: 'span 12', sm: 'span 6' } }}>
                 <DatePicker
                   label="Start Date"
                   value={formData.from_date ? new Date(formData.from_date) : null}
@@ -173,9 +172,9 @@ const OTRegistrationForm: React.FC<OTFormProps> = ({ onSubmit, isLoading }) => {
                     },
                   }}
                 />
-              </Grid>
+              </Box>
               
-              <Grid item xs={12} sm={6}>
+              <Box sx={{ gridColumn: { xs: 'span 12', sm: 'span 6' } }}>
                 <DatePicker
                   label="End Date"
                   value={formData.to_date ? new Date(formData.to_date) : null}
@@ -189,16 +188,16 @@ const OTRegistrationForm: React.FC<OTFormProps> = ({ onSubmit, isLoading }) => {
                     },
                   }}
                 />
-              </Grid>
+              </Box>
 
               {/* Time Range */}
-              <Grid item xs={12}>
+              <Box>
                 <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, mt: 2 }}>
                   Time Window
                 </Typography>
-              </Grid>
+              </Box>
               
-              <Grid item xs={12} sm={6}>
+              <Box sx={{ gridColumn: { xs: 'span 12', sm: 'span 6' } }}>
                 <TimePicker
                   label="Start Time"
                   value={formData.from_time ? new Date(`2000-01-01T${formData.from_time}`) : null}
@@ -215,9 +214,9 @@ const OTRegistrationForm: React.FC<OTFormProps> = ({ onSubmit, isLoading }) => {
                     },
                   }}
                 />
-              </Grid>
+              </Box>
               
-              <Grid item xs={12} sm={6}>
+              <Box sx={{ gridColumn: { xs: 'span 12', sm: 'span 6' } }}>
                 <TimePicker
                   label="End Time"
                   value={formData.to_time ? new Date(`2000-01-01T${formData.to_time}`) : null}
@@ -234,16 +233,16 @@ const OTRegistrationForm: React.FC<OTFormProps> = ({ onSubmit, isLoading }) => {
                     },
                   }}
                 />
-              </Grid>
+              </Box>
 
               {/* OT Configuration */}
-              <Grid item xs={12}>
+              <Box>
                 <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, mt: 2 }}>
                   OT Configuration
                 </Typography>
-              </Grid>
+              </Box>
               
-              <Grid item xs={12} sm={6}>
+              <Box sx={{ gridColumn: { xs: 'span 12', sm: 'span 6' } }}>
                 <FormControl fullWidth error={!!errors.ot_type}>
                   <InputLabel>OT Type</InputLabel>
                   <Select
@@ -256,9 +255,9 @@ const OTRegistrationForm: React.FC<OTFormProps> = ({ onSubmit, isLoading }) => {
                     <MenuItem value="ADDITIONAL">Additional</MenuItem>
                   </Select>
                 </FormControl>
-              </Grid>
+              </Box>
               
-              <Grid item xs={12} sm={6}>
+              <Box sx={{ gridColumn: { xs: 'span 12', sm: 'span 6' } }}>
                 <FormControl fullWidth error={!!errors.ot_benefit_type}>
                   <InputLabel>Benefit Type</InputLabel>
                   <Select
@@ -272,10 +271,10 @@ const OTRegistrationForm: React.FC<OTFormProps> = ({ onSubmit, isLoading }) => {
                     <MenuItem value="SALARY">Salary</MenuItem>
                   </Select>
                 </FormControl>
-              </Grid>
+              </Box>
 
               {/* Reason */}
-              <Grid item xs={12}>
+              <Box sx={{ gridColumn: 'span 12' }}>
                 <TextField
                   fullWidth
                   label="Reason for Overtime"
@@ -288,8 +287,8 @@ const OTRegistrationForm: React.FC<OTFormProps> = ({ onSubmit, isLoading }) => {
                   helperText={errors.reason}
                   disabled={isLoading}
                 />
-              </Grid>
-            </Grid>
+              </Box>
+            </Box>
 
             <Divider sx={{ my: 3 }} />
 

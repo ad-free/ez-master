@@ -7,11 +7,6 @@ import {
   Typography,
   Alert,
   CircularProgress,
-  Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Chip,
   Divider,
   Paper,
@@ -65,22 +60,8 @@ const SalaryDownload: React.FC<SalaryDownloadProps> = ({ onDownload, isLoading }
     return new Date(now.getFullYear(), now.getMonth(), 1);
   };
 
-  const getLastMonths = () => {
-    const months = [];
-    const now = new Date();
-    for (let i = 0; i < 12; i++) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      months.push(date);
-    }
-    return months;
-  };
-
   const formatDateForDisplay = (date: Date) => {
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
-  };
-
-  const formatDateForAPI = (date: Date) => {
-    return date.toISOString().slice(0, 7); // YYYY-MM format
   };
 
   return (
@@ -110,9 +91,9 @@ const SalaryDownload: React.FC<SalaryDownloadProps> = ({ onDownload, isLoading }
             </Alert>
           )}
 
-          <Grid container spacing={3}>
+          <Box sx={{ display: 'grid', gap: 3 }}>
             {/* Quick Download Options */}
-            <Grid item xs={12}>
+            <Box>
               <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
                 Quick Download
               </Typography>
@@ -137,20 +118,20 @@ const SalaryDownload: React.FC<SalaryDownloadProps> = ({ onDownload, isLoading }
                   variant="outlined"
                 />
               </Box>
-            </Grid>
+            </Box>
 
-            <Grid item xs={12}>
+            <Box sx={{ width: '100%', mt: 3 }}>
               <Divider />
-            </Grid>
+            </Box>
 
             {/* Custom Date Selection */}
-            <Grid item xs={12}>
+            <Box sx={{ width: '100%', mt: 3 }}>
               <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
                 Select Specific Month
               </Typography>
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} sm={6}>
+            <Box sx={{ width: { xs: '100%', sm: '50%' }, mt: 2 }}>
               <DatePicker
                 label="Select Month"
                 value={selectedDate}
@@ -163,9 +144,9 @@ const SalaryDownload: React.FC<SalaryDownloadProps> = ({ onDownload, isLoading }
                   },
                 }}
               />
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} sm={6}>
+            <Box sx={{ width: { xs: '100%', sm: '50%' }, mt: 2 }}>
               <Button
                 variant="outlined"
                 startIcon={<Download />}
@@ -180,16 +161,16 @@ const SalaryDownload: React.FC<SalaryDownloadProps> = ({ onDownload, isLoading }
                   'Download Selected Month'
                 )}
               </Button>
-            </Grid>
+            </Box>
 
             {/* Recent Downloads */}
             {downloadHistory.length > 0 && (
               <>
-                <Grid item xs={12}>
+                <Box sx={{ width: '100%', mt: 3 }}>
                   <Divider sx={{ my: 2 }} />
-                </Grid>
+                </Box>
                 
-                <Grid item xs={12}>
+                <Box sx={{ width: '100%', mt: 3 }}>
                   <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
                     Recent Downloads
                   </Typography>
@@ -218,16 +199,16 @@ const SalaryDownload: React.FC<SalaryDownloadProps> = ({ onDownload, isLoading }
                       ))}
                     </List>
                   </Paper>
-                </Grid>
+                </Box>
               </>
             )}
 
             {/* Information */}
-            <Grid item xs={12}>
+            <Box sx={{ width: '100%', mt: 3 }}>
               <Divider sx={{ my: 2 }} />
-            </Grid>
+            </Box>
 
-            <Grid item xs={12}>
+            <Box sx={{ width: '100%', mt: 2 }}>
               <Paper elevation={1} sx={{ p: 2, bgcolor: 'info.light', color: 'info.contrastText' }}>
                 <Typography variant="body2">
                   <strong>Note:</strong> Salary PDFs are generated in real-time from your EZ account. 
@@ -235,8 +216,8 @@ const SalaryDownload: React.FC<SalaryDownloadProps> = ({ onDownload, isLoading }
                   Downloads are available for the last 12 months.
                 </Typography>
               </Paper>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </CardContent>
       </Card>
     </LocalizationProvider>

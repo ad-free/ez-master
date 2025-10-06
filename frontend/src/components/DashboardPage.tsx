@@ -4,9 +4,7 @@ import {
   AppBar,
   Toolbar,
   Typography,
-  Button,
   Container,
-  Grid,
   Card,
   CardContent,
   CardHeader,
@@ -15,7 +13,6 @@ import {
   Tab,
   Tabs,
   Paper,
-  Divider,
   IconButton,
   Menu,
   MenuItem,
@@ -73,7 +70,7 @@ const DashboardPage: React.FC<DashboardProps> = ({ user, onLogout }) => {
     setAnchorEl(null);
   };
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
   };
 
@@ -208,40 +205,40 @@ const DashboardPage: React.FC<DashboardProps> = ({ user, onLogout }) => {
             }
           />
           <CardContent>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
+            <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' } }}>
+              <Box>
                 <Typography variant="body2" color="text.secondary">
                   Position
                 </Typography>
                 <Typography variant="body1" gutterBottom>
                   {user.ChucVu}
                 </Typography>
-              </Grid>
-              <Grid item xs={12} sm={6}>
+              </Box>
+              <Box>
                 <Typography variant="body2" color="text.secondary">
                   Title
                 </Typography>
                 <Typography variant="body1" gutterBottom>
                   {user.ChucDanh}
                 </Typography>
-              </Grid>
-              <Grid item xs={12} sm={6}>
+              </Box>
+              <Box>
                 <Typography variant="body2" color="text.secondary">
                   Department
                 </Typography>
                 <Typography variant="body1" gutterBottom>
                   {user.PhongBan}
                 </Typography>
-              </Grid>
-              <Grid item xs={12} sm={6}>
+              </Box>
+              <Box>
                 <Typography variant="body2" color="text.secondary">
                   Employee ID
                 </Typography>
                 <Typography variant="body1" gutterBottom>
                   {user.ID}
                 </Typography>
-              </Grid>
-            </Grid>
+              </Box>
+            </Box>
           </CardContent>
         </Card>
 

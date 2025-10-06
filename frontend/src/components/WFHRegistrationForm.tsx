@@ -8,7 +8,6 @@ import {
   Typography,
   Alert,
   CircularProgress,
-  Grid,
   FormControl,
   InputLabel,
   Select,
@@ -123,8 +122,8 @@ const WFHRegistrationForm: React.FC<WFHFormProps> = ({ onSubmit, isLoading }) =>
           )}
 
           <Box component="form" onSubmit={handleSubmit}>
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={6}>
+            <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' } }}>
+              <Box>
                 <DatePicker
                   label="Start Date"
                   value={formData.from_date ? new Date(formData.from_date) : null}
@@ -138,9 +137,9 @@ const WFHRegistrationForm: React.FC<WFHFormProps> = ({ onSubmit, isLoading }) =>
                     },
                   }}
                 />
-              </Grid>
+              </Box>
               
-              <Grid item xs={12} sm={6}>
+              <Box>
                 <DatePicker
                   label="End Date"
                   value={formData.to_date ? new Date(formData.to_date) : null}
@@ -154,9 +153,9 @@ const WFHRegistrationForm: React.FC<WFHFormProps> = ({ onSubmit, isLoading }) =>
                     },
                   }}
                 />
-              </Grid>
+              </Box>
 
-              <Grid item xs={12}>
+              <Box sx={{ gridColumn: '1/-1' }}>
                 <FormControl fullWidth error={!!errors.reason}>
                   <InputLabel>Reason for WFH</InputLabel>
                   <Select
@@ -177,10 +176,10 @@ const WFHRegistrationForm: React.FC<WFHFormProps> = ({ onSubmit, isLoading }) =>
                     </Typography>
                   )}
                 </FormControl>
-              </Grid>
+              </Box>
 
               {formData.reason === 'Other' && (
-                <Grid item xs={12}>
+                <Box sx={{ gridColumn: '1/-1' }}>
                   <TextField
                     fullWidth
                     label="Custom Reason"
@@ -191,9 +190,9 @@ const WFHRegistrationForm: React.FC<WFHFormProps> = ({ onSubmit, isLoading }) =>
                     placeholder="Please specify your reason for working from home..."
                     disabled={isLoading}
                   />
-                </Grid>
+                </Box>
               )}
-            </Grid>
+            </Box>
 
             <Divider sx={{ my: 3 }} />
 
