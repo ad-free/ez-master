@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Depends, Response, Request
-from fastapi.security import HTTPAuthorizationCredentials
+from fastapi import APIRouter, HTTPException, Depends, Response
 
 from app.clients.ez import EzClient
 from app.core.exceptions import EzException
 from app.schemas.auth import LoginRequest, LoginResponse, ProfileResponse
-from app.routers.common import security, get_ez_bearer_token
+from app.routers.common import get_user_profile
 
 
 router = APIRouter(prefix="", tags=["auth"])
@@ -37,10 +36,7 @@ def login(req: LoginRequest, response: Response):
 
 
 @router.get("/profile")
-def profile(
-    credentials: HTTPAuthorizationCredentials | None = Depends(security),
-    request: Request = None,
-):
+def profile(profile_data: dict = Depends(get_user_profile)):
     """Get the current user's EZ profile identifier.
 
     Authentication:
@@ -53,12 +49,6 @@ def profile(
     Errors:
     - 401: Invalid or expired token
     """
-    client = EzClient()
-    try:
-        token = get_ez_bearer_token(credentials, request)
-        profile = client.get_user_profile(token)
-        return ProfileResponse(**profile)
-    except EzException as exc:
-        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    return ProfileResponse(**profile_data)
 
 

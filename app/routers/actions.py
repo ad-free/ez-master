@@ -10,7 +10,7 @@ from app.clients.ez import EzClient
 from app.core.exceptions import EzException
 from app.core.types import OTBenefitType, OTType
 from app.schemas.requests import RegisterOTRequest, RegisterWFHRequest
-from app.routers.common import security, get_ez_bearer_token
+from app.routers.common import security, get_ez_bearer_token, get_user_id
 
 
 router = APIRouter(prefix="", tags=["actions"])
@@ -32,6 +32,7 @@ def _dates_between_inclusive(from_date: str, to_date: str) -> List[str]:
 @router.post("/wfh/register")
 def register_wfh(
     req: RegisterWFHRequest,
+    user_id: str = Depends(get_user_id),
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
     request: Request = None,
 ):
@@ -59,7 +60,6 @@ def register_wfh(
     client = EzClient()
     try:
         token = get_ez_bearer_token(credentials, request)
-        user_id = client.get_user_id(token)
         dates = _dates_between_inclusive(req.from_date, req.to_date)
         client.register_wfh(token=token, user_id=user_id, dates=dates, reason=req.reason)
         return {"status": "ok", "user_id": user_id, "dates": dates}
@@ -70,6 +70,7 @@ def register_wfh(
 @router.post("/ot/register")
 def register_ot(
     req: RegisterOTRequest,
+    user_id: str = Depends(get_user_id),
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
     request: Request = None,
 ):
@@ -100,7 +101,6 @@ def register_ot(
     client = EzClient()
     try:
         token = get_ez_bearer_token(credentials, request)
-        user_id = client.get_user_id(token)
         dates = _dates_between_inclusive(req.from_date, req.to_date)
         ot_type_value = (OTType.PLAN if req.ot_type == "PLAN" else OTType.ADDITIONAL).value
         ot_benefit_value = OTBenefitType[req.ot_benefit_type]
