@@ -22,11 +22,20 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://ad-free.github.io",
+        "https://ad-free.github.io/ez-master",
         "http://localhost:5173",
-    ],  # Add your frontend URLs
+    ],
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Content-Type",
+        "Authorization",
+        "Accept",
+        "Origin",
+        "X-Requested-With",
+    ],
+    expose_headers=["*"],
+    max_age=3600,  # Cache preflight requests for 1 hour
 )
 
 app.include_router(auth_router.router)
