@@ -56,10 +56,9 @@ class ApiClient {
       timeout: 60000, // raised timeout to 60s to help debug slow responses
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Origin': 'https://ad-free.github.io'
+        'Accept': 'application/json'
       },
-      withCredentials: false // Changed to false since we're not using session cookies
+      withCredentials: true // Set back to true to ensure CORS credentials are sent
     });
 
     // expose resolved base for quick debugging

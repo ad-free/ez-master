@@ -22,18 +22,12 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://ad-free.github.io",
-        "https://ad-free.github.io/ez-master",
         "http://localhost:5173",
     ],
+    allow_origin_regex=r"https://ad-free\.github\.io(/.*)?",
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=[
-        "Content-Type",
-        "Authorization",
-        "Accept",
-        "Origin",
-        "X-Requested-With",
-    ],
+    allow_methods=["*"],
+    allow_headers=["*"],
     expose_headers=["*"],
     max_age=3600,  # Cache preflight requests for 1 hour
 )
