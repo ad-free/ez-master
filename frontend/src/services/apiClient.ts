@@ -57,6 +57,7 @@ class ApiClient {
       headers: {
         'Content-Type': 'application/json',
       },
+      withCredentials: true, // Important for CORS with credentials
     });
 
     // expose resolved base for quick debugging

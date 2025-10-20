@@ -43,6 +43,7 @@ class OTType(enum.Enum):
     PLAN = 1
     ADDITIONAL = 0
 
+
 class OTBenefitType(enum.Enum):
     """OT Benifit type"""
 
@@ -139,7 +140,7 @@ def register_ot(
     from_time: str,
     to_time: str,
     ot_type: int = OTType.PLAN.value,
-    ot_benifit_type: OTBenefitType = OTBenefitType.DILIGENCE,
+    ot_benefit_type: OTBenefitType = OTBenefitType.DILIGENCE,
     reason: str = "",
 ):
     """Register Overtime"""
