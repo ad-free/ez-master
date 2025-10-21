@@ -335,19 +335,13 @@ const DashboardPage: React.FC<DashboardProps> = ({ user, onLogout }) => {
                 setRowsPerPage(parseInt(e.target.value, 10));
                 setPage(0);
               }}
-              rowsPerPageOptions={[5, 10, 20, 50]}
+              rowsPerPageOptions={[5, 10, 20, 50, 100]}
               sx={{ mt: 2 }}
             />
           </TabPanel>
 
           {/* WFH Tab (now second) */}
           <TabPanel value={activeTab} index={1}>
-            <Typography variant="h6" gutterBottom>
-              Work From Home Registration
-            </Typography>
-            <Typography variant="body2" color="text.secondary" paragraph>
-              Register your work from home requests for specific date ranges. All dates will be processed automatically.
-            </Typography>
             <WFHRegistrationForm
               onSubmit={handleWFHSubmit}
               isLoading={isLoading}
@@ -356,12 +350,6 @@ const DashboardPage: React.FC<DashboardProps> = ({ user, onLogout }) => {
 
           {/* OT Tab (now third) */}
           <TabPanel value={activeTab} index={2}>
-            <Typography variant="h6" gutterBottom>
-              Overtime Registration
-            </Typography>
-            <Typography variant="body2" color="text.secondary" paragraph>
-              Register overtime requests with specific time windows and benefit types. All dates will be processed automatically.
-            </Typography>
             <OTRegistrationForm
               onSubmit={handleOTSubmit}
               isLoading={isLoading}
@@ -370,12 +358,6 @@ const DashboardPage: React.FC<DashboardProps> = ({ user, onLogout }) => {
 
           {/* Salary Tab (now fourth) */}
           <TabPanel value={activeTab} index={3}>
-            <Typography variant="h6" gutterBottom>
-              Salary Management
-            </Typography>
-            <Typography variant="body2" color="text.secondary" paragraph>
-              Download your salary PDFs for any month. Select a specific month or download the current month's salary.
-            </Typography>
             <SalaryDownload
               onDownload={handleSalaryDownload}
               isLoading={isLoading}
