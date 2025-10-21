@@ -19,6 +19,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { CalendarToday, Home } from '@mui/icons-material';
+import { format, parse } from 'date-fns';
 
 interface WFHFormProps {
   onSubmit: (data: WFHFormData) => Promise<void>;
@@ -126,8 +127,8 @@ const WFHRegistrationForm: React.FC<WFHFormProps> = ({ onSubmit, isLoading }) =>
               <Box>
                 <DatePicker
                   label="Start Date"
-                  value={formData.from_date ? new Date(formData.from_date) : null}
-                  onChange={(date) => handleInputChange('from_date')(date?.toISOString().split('T')[0] || '')}
+                  value={formData.from_date ? parse(formData.from_date, 'yyyy-MM-dd', new Date()) : null}
+                  onChange={(date) => handleInputChange('from_date')(date ? format(date as Date, 'yyyy-MM-dd') : '')}
                   slotProps={{
                     textField: {
                       fullWidth: true,
@@ -142,8 +143,8 @@ const WFHRegistrationForm: React.FC<WFHFormProps> = ({ onSubmit, isLoading }) =>
               <Box>
                 <DatePicker
                   label="End Date"
-                  value={formData.to_date ? new Date(formData.to_date) : null}
-                  onChange={(date) => handleInputChange('to_date')(date?.toISOString().split('T')[0] || '')}
+                  value={formData.to_date ? parse(formData.to_date, 'yyyy-MM-dd', new Date()) : null}
+                  onChange={(date) => handleInputChange('to_date')(date ? format(date as Date, 'yyyy-MM-dd') : '')}
                   slotProps={{
                     textField: {
                       fullWidth: true,
@@ -201,13 +202,13 @@ const WFHRegistrationForm: React.FC<WFHFormProps> = ({ onSubmit, isLoading }) =>
                 <Chip
                   icon={<CalendarToday />}
                   label={`From: ${formData.from_date || 'Not selected'}`}
-                  color={formData.from_date ? 'primary' : 'default'}
+                  color={formData.from_date ? 'primary' : undefined}
                   variant={formData.from_date ? 'filled' : 'outlined'}
                 />
                 <Chip
                   icon={<CalendarToday />}
                   label={`To: ${formData.to_date || 'Not selected'}`}
-                  color={formData.to_date ? 'primary' : 'default'}
+                  color={formData.to_date ? 'primary' : undefined}
                   variant={formData.to_date ? 'filled' : 'outlined'}
                 />
               </Box>

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field, field_validator
 
+# TicketStatus import removed because it's not used in this module
 # from app.core.types import OTType
 from app.utils.time import validate_time_format
 
@@ -16,7 +17,9 @@ class RegisterOTRequest(RegisterWFHRequest):
     from_time: str = Field(..., description="Start time HH:MM")
     to_time: str = Field(..., description="End time HH:MM")
     ot_type: str = Field("PLAN", description="PLAN or ADDITIONAL")
-    ot_benefit_type: str = Field("DILIGENCE", description="DILIGENCE or COMPENSATION or SALARY")
+    ot_benefit_type: str = Field(
+        "DILIGENCE", description="DILIGENCE or COMPENSATION or SALARY"
+    )
 
     @field_validator("from_time", "to_time")
     @classmethod
@@ -36,7 +39,7 @@ class RegisterOTRequest(RegisterWFHRequest):
     def _validate_ot_benefit_type(cls, value: str) -> str:
         upper = value.upper()
         if upper not in ("DILIGENCE", "COMPENSATION", "SALARY"):
-            raise ValueError("ot_benefit_type must be DILIGENCE, COMPENSATION or SALARY")
+            raise ValueError(
+                "ot_benefit_type must be DILIGENCE, COMPENSATION or SALARY"
+            )
         return upper
-
-

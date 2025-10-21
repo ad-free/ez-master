@@ -45,23 +45,18 @@ class ApiClient {
   private token: string | null = null;
 
   constructor(baseURL?: string) {
-    // If using Vite, base URL may be provided via import.meta.env.VITE_API_BASE
-    // Fallback order: explicit arg -> VITE_API_BASE -> REACT_APP_API_BASE -> default
-    // Use (globalThis as any) to safely access import.meta in environments where it's unavailable.
-    const viteEnv = (globalThis as any).importMeta?.env?.VITE_API_BASE || (globalThis as any).importMeta?.env?.VITE_API_BASE;
-    const reactEnv = (globalThis as any).__REACT_APP_API_BASE__ || undefined;
-    const resolvedBase = baseURL || viteEnv || reactEnv || 'https://ez-master.onrender.com';
+
+    // Use Vite env for dev/prod, fallback to localhost for dev
+    const resolvedBase = baseURL || import.meta.env.VITE_API_BASE || 'http://127.0.0.1:5000';
     this.client = axios.create({
       baseURL: resolvedBase,
-      timeout: 60000, // raised timeout to 60s to help debug slow responses
+      timeout: 60000,
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      withCredentials: true // Set back to true to ensure CORS credentials are sent
+      withCredentials: true
     });
-
-    // expose resolved base for quick debugging
     (this as any)._resolvedBase = resolvedBase;
 
     // Request interceptor to add auth token
@@ -165,6 +160,19 @@ class ApiClient {
   // Health check
   async healthCheck(): Promise<{ status: string }> {
     const response = await this.client.get('/healthcheck');
+    return response.data;
+  }
+
+  // Tickets endpoints
+  async getTickets(ticket_status = 'Pending', page_size = 200): Promise<any[]> {
+    const response = await this.client.get('/tickets', {
+      params: { ticket_status, page_size },
+    });
+    return response.data;
+  }
+
+  async rejectTicket(ticket_id: number): Promise<{ message?: string; ticket_id?: number }> {
+    const response = await this.client.post(`/tickets/${ticket_id}/reject`);
     return response.data;
   }
 }

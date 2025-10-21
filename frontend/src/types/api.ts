@@ -44,3 +44,13 @@ export interface ApiError {
 }
 
 // Force Vite refresh - cache issue fix
+
+// Ticket types returned by backend GetTicketsResponse
+export interface Ticket {
+  ticket_id: string;
+  owner: string;
+  status: string;
+  reason: string;
+  approver: string;
+  created_at?: string;
+}

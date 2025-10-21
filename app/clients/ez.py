@@ -6,8 +6,8 @@ from typing import Iterable, Tuple
 import httpx
 
 from app.core.constants import EZ_APIS
-from app.core.types import OTBenefitType
 from app.core.exceptions import EzException
+from app.core.types import OTBenefitType, TicketStatus
 
 
 class EzClient:
@@ -22,13 +22,17 @@ class EzClient:
 
     def get_user_profile(self, token: str) -> dict:
         response = httpx.get(
-            url=EZ_APIS["profile"], headers={"Authorization": f"bearer {token}"}, timeout=10
+            url=EZ_APIS["profile"],
+            headers={"Authorization": f"bearer {token}"},
+            timeout=10,
         )
         if response.status_code != 200:
             raise EzException("Failed to get the user profile.")
         return response.json()["Data"]
 
-    def register_wfh(self, *, token: str, user_id: str, dates: Iterable[str], reason: str) -> None:
+    def register_wfh(
+        self, *, token: str, user_id: str, dates: Iterable[str], reason: str
+    ) -> None:
         base_payload = {
             "Type": "day",
             "NhomPhuCap": None,
@@ -121,7 +125,9 @@ class EzClient:
                     f"Couldn't register OT on EZ Tool. Status: {response.status_code}. Body: {response.text}"
                 )
 
-    def download_salary_pdf(self, token: str, date: str | None = None) -> Tuple[str, bytes]:
+    def download_salary_pdf(
+        self, token: str, date: str | None = None
+    ) -> Tuple[str, bytes]:
         if not date:
             date = datetime.now(timezone.utc).strftime("%Y-%m")
         payload = {"monthYear": date}
@@ -136,10 +142,64 @@ class EzClient:
         if not salary_info or not salary_info.get("Path"):
             raise EzException("Salary info not available for the specified date.")
         response = httpx.get(
-            url=salary_info["Path"], headers={"Authorization": f"bearer {token}"}, timeout=30
+            url=salary_info["Path"],
+            headers={"Authorization": f"bearer {token}"},
+            timeout=30,
         )
         response.raise_for_status()
         filename = f"salary_{date}.pdf"
         return filename, response.content
 
+    def get_all_tickets(
+        self,
+        token: str,
+        ticket_status: str = TicketStatus.Pending.name,
+        page_size=100,
+    ) -> list[dict]:
+        """_summary_
 
+        Args:
+            token (str): _description_
+
+        Raises:
+            EzException: _description_
+
+        Returns:
+            list[dict]: _description_
+        """
+
+        response = httpx.get(
+            url=EZ_APIS["tickets"],
+            headers={"Authorization": f"bearer {token}"},
+            timeout=15,
+            params={
+                "type": ticket_status,
+                "pagingID": 0,
+                "pageSize": page_size,
+            },
+        )
+
+        if response.status_code != 200:
+            raise EzException("Couldn't fetch tickets from EZ Tool.")
+
+        return response.json().get("Data", [])
+
+    def reject_ticket_by_id(self, token: str, ticket_id: int) -> None:
+        payload = {
+            "TicketID": ticket_id,
+            "Reason": "Cancel",
+            "Status": "Cancel",
+        }
+
+        response = httpx.post(
+            url=f"{EZ_APIS['reject_ticket']}",
+            headers={
+                "Authorization": f"bearer {token}",
+                "Content-Type": "application/json",
+            },
+            timeout=15,
+            json=payload,
+        )
+
+        if response.status_code != 200:
+            raise EzException(f"Couldn't reject ticket ID {ticket_id} on EZ Tool.")

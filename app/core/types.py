@@ -12,3 +12,8 @@ class OTBenefitType(Enum):
     SALARY = 0
     COMPENSATION = 1
     DILIGENCE = 2
+
+
+class TicketStatus(Enum):
+    Pending = 0
+    Following = 1

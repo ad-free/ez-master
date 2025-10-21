@@ -26,16 +26,19 @@ import {
   AttachMoney,
   Logout,
   Person,
+  ConfirmationNumber,
 } from '@mui/icons-material';
 
 // Import our new components
 import WFHRegistrationForm from './WFHRegistrationForm';
 import OTRegistrationForm from './OTRegistrationForm';
 import SalaryDownload from './SalaryDownload';
+import TicketsTable from './TicketsTable';
+import TablePagination from '@mui/material/TablePagination';
 
 // Import API client
 import { apiClient } from '../services/apiClient';
-import type { RegisterWFHRequest, RegisterOTRequest } from '../types/api'
+import type { RegisterWFHRequest, RegisterOTRequest, Ticket } from '../types/api'
 
 interface ProfileResponse {
   ID: string;
@@ -54,6 +57,12 @@ interface DashboardProps {
 
 const DashboardPage: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState(0);
+  // Tickets state (tab index 3)
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [loadingTickets, setLoadingTickets] = useState(false);
+  const [ticketsError, setTicketsError] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [snackbar, setSnackbar] = useState<{
@@ -76,6 +85,39 @@ const DashboardPage: React.FC<DashboardProps> = ({ user, onLogout }) => {
 
   const showSnackbar = (message: string, severity: 'success' | 'error' | 'info' = 'success') => {
     setSnackbar({ open: true, message, severity });
+  };
+
+  const loadTickets = async () => {
+    setLoadingTickets(true);
+    setTicketsError(null);
+    try {
+      const data = await apiClient.getTickets('Pending', 1000);
+      setTickets(data as Ticket[]);
+      setPage(0); // Reset to first page on reload
+    } catch (err: any) {
+      console.error('Failed to load tickets', err);
+      setTicketsError(err?.response?.data?.detail || err?.message || 'Failed to load tickets');
+    } finally {
+      setLoadingTickets(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (activeTab === 0) {
+      loadTickets();
+    }
+    // eslint-disable-next-line
+  }, [activeTab]);
+
+  const handleRejectTicket = async (ticketId: number | string) => {
+    try {
+      await apiClient.rejectTicket(Number(ticketId));
+      setTickets(prev => prev.filter(t => t.ticket_id !== String(ticketId)));
+      showSnackbar(`Rejected ticket ${ticketId}`, 'success');
+    } catch (err: any) {
+      console.error('Reject ticket failed', err);
+      showSnackbar(err?.response?.data?.detail || err?.message || 'Failed to reject ticket', 'error');
+    }
   };
 
   const handleCloseSnackbar = () => {
@@ -251,6 +293,11 @@ const DashboardPage: React.FC<DashboardProps> = ({ user, onLogout }) => {
             sx={{ borderBottom: 1, borderColor: 'divider' }}
           >
             <Tab
+              icon={<ConfirmationNumber />}
+              label="Tickets"
+              iconPosition="start"
+            />
+            <Tab
               icon={<Home />}
               label="Work From Home"
               iconPosition="start"
@@ -267,45 +314,68 @@ const DashboardPage: React.FC<DashboardProps> = ({ user, onLogout }) => {
             />
           </Tabs>
 
-          {/* WFH Tab */}
+          {/* Tickets Tab (now first) */}
           <TabPanel value={activeTab} index={0}>
+            <Typography variant="h6" gutterBottom>
+              Tickets
+            </Typography>
+            {ticketsError && <Alert severity="error" sx={{ mb: 2 }}>{ticketsError}</Alert>}
+            <TicketsTable
+              tickets={tickets.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)}
+              loading={loadingTickets}
+              onReject={handleRejectTicket}
+            />
+            <TablePagination
+              component="div"
+              count={tickets.length}
+              page={page}
+              onPageChange={(_e, newPage) => setPage(newPage)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={e => {
+                setRowsPerPage(parseInt(e.target.value, 10));
+                setPage(0);
+              }}
+              rowsPerPageOptions={[5, 10, 20, 50]}
+              sx={{ mt: 2 }}
+            />
+          </TabPanel>
+
+          {/* WFH Tab (now second) */}
+          <TabPanel value={activeTab} index={1}>
             <Typography variant="h6" gutterBottom>
               Work From Home Registration
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
               Register your work from home requests for specific date ranges. All dates will be processed automatically.
             </Typography>
-            
             <WFHRegistrationForm
               onSubmit={handleWFHSubmit}
               isLoading={isLoading}
             />
           </TabPanel>
 
-          {/* OT Tab */}
-          <TabPanel value={activeTab} index={1}>
+          {/* OT Tab (now third) */}
+          <TabPanel value={activeTab} index={2}>
             <Typography variant="h6" gutterBottom>
               Overtime Registration
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
               Register overtime requests with specific time windows and benefit types. All dates will be processed automatically.
             </Typography>
-            
             <OTRegistrationForm
               onSubmit={handleOTSubmit}
               isLoading={isLoading}
             />
           </TabPanel>
 
-          {/* Salary Tab */}
-          <TabPanel value={activeTab} index={2}>
+          {/* Salary Tab (now fourth) */}
+          <TabPanel value={activeTab} index={3}>
             <Typography variant="h6" gutterBottom>
               Salary Management
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
               Download your salary PDFs for any month. Select a specific month or download the current month's salary.
             </Typography>
-            
             <SalaryDownload
               onDownload={handleSalaryDownload}
               isLoading={isLoading}

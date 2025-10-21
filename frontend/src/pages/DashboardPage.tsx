@@ -1,13 +1,38 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiClient } from '../services/apiClient';
-import type { RegisterWFHRequest, RegisterOTRequest } from '../types/api'
+import type { RegisterWFHRequest, RegisterOTRequest, Ticket } from '../types/api'
+import TicketsTable from '../components/TicketsTable';
 
 const DashboardPage: React.FC = () => {
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<'wfh' | 'ot' | 'salary'>('wfh');
+  const [activeTab, setActiveTab] = useState<'wfh' | 'ot' | 'salary' | 'tickets'>('wfh');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  // Tickets state
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [loadingTickets, setLoadingTickets] = useState(false);
+  const [ticketsError, setTicketsError] = useState<string | null>(null);
+
+  const loadTickets = async () => {
+    setLoadingTickets(true);
+    setTicketsError(null);
+    try {
+      const data = await apiClient.getTickets('Pending', 200);
+      setTickets(data as Ticket[]);
+    } catch (err: any) {
+      console.error('Failed loading tickets', err);
+      setTicketsError(err?.response?.data?.detail || err?.message || 'Failed to load tickets');
+    } finally {
+      setLoadingTickets(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'tickets') {
+      loadTickets();
+    }
+  }, [activeTab]);
 
   // WFH Form state
   const [wfhForm, setWfhForm] = useState<RegisterWFHRequest>({
@@ -100,12 +125,15 @@ const DashboardPage: React.FC = () => {
                 Welcome, {user?.FirstName} {user?.LastName}
               </p>
             </div>
-            <button
-              onClick={logout}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-            >
-              Logout
-            </button>
+            <div className="flex items-center space-x-2">
+              <a href="#/tickets" className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-md text-sm font-medium">Tickets</a>
+              <button
+                onClick={logout}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -154,6 +182,7 @@ const DashboardPage: React.FC = () => {
                 { id: 'wfh', name: 'Work From Home', icon: '🏠' },
                 { id: 'ot', name: 'Overtime', icon: '⏰' },
                 { id: 'salary', name: 'Salary', icon: '💰' },
+                { id: 'tickets', name: 'Tickets', icon: '🎫' },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -353,6 +382,26 @@ const DashboardPage: React.FC = () => {
                 >
                   {isLoading ? 'Downloading...' : 'Download Current Month Salary'}
                 </button>
+              </div>
+            )}
+
+            {/* Tickets Tab */}
+            {activeTab === 'tickets' && (
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Tickets</h3>
+                {ticketsError && <div className="mb-4 text-red-600">{ticketsError}</div>}
+                <div className="bg-white shadow rounded-lg p-4">
+                  <TicketsTable tickets={tickets} loading={loadingTickets} onReject={async (id) => {
+                    try {
+                      await apiClient.rejectTicket(Number(id));
+                      setTickets(prev => prev.filter(t => t.ticket_id !== String(id)));
+                      showMessage('success', `Rejected ticket ${id}`);
+                    } catch (err: any) {
+                      console.error('Reject ticket failed', err);
+                      showMessage('error', err?.response?.data?.detail || err?.message || 'Failed to reject ticket');
+                    }
+                  }} />
+                </div>
               </div>
             )}
           </div>

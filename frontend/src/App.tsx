@@ -7,6 +7,7 @@ import { Box, CircularProgress } from '@mui/material';
 // Components
 import LoginPage from './components/LoginPage';
 import DashboardPage from './components/DashboardPage';
+import TicketsPage from './pages/TicketsPage';
 
 // API Client
 import { apiClient } from './services/apiClient';
@@ -179,6 +180,14 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute>
             {user && <DashboardPage user={user} onLogout={logout} />}
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tickets"
+        element={
+          <ProtectedRoute>
+            <TicketsPage />
           </ProtectedRoute>
         }
       />

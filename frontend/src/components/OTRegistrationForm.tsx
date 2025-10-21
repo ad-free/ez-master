@@ -13,14 +13,14 @@ import {
   Select,
   MenuItem,
   Chip,
-  Paper,
-  Divider,
+  
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { CalendarToday, Schedule, AccessTime } from '@mui/icons-material';
+import { format, parse } from 'date-fns';
 
 interface OTFormProps {
   onSubmit: (data: OTFormData) => Promise<void>;
@@ -149,20 +149,20 @@ const OTRegistrationForm: React.FC<OTFormProps> = ({ onSubmit, isLoading }) => {
             </Alert>
           )}
 
-          <Box component="form" onSubmit={handleSubmit}>
-            <Box sx={{ display: 'grid', gap: 3 }}>
+          <form onSubmit={handleSubmit}>
+            <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' } }}>
               {/* Date Range */}
-              <Box>
+              <Box sx={{ gridColumn: '1/-1' }}>
                 <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
                   Date Range
                 </Typography>
               </Box>
-              
-              <Box sx={{ gridColumn: { xs: 'span 12', sm: 'span 6' } }}>
+
+              <Box>
                 <DatePicker
                   label="Start Date"
-                  value={formData.from_date ? new Date(formData.from_date) : null}
-                  onChange={(date) => handleInputChange('from_date')(date?.toISOString().split('T')[0] || '')}
+                  value={formData.from_date ? parse(formData.from_date, 'yyyy-MM-dd', new Date()) : null}
+                  onChange={(date) => handleInputChange('from_date')(date ? format(date as Date, 'yyyy-MM-dd') : '')}
                   slotProps={{
                     textField: {
                       fullWidth: true,
@@ -173,12 +173,12 @@ const OTRegistrationForm: React.FC<OTFormProps> = ({ onSubmit, isLoading }) => {
                   }}
                 />
               </Box>
-              
-              <Box sx={{ gridColumn: { xs: 'span 12', sm: 'span 6' } }}>
+
+              <Box>
                 <DatePicker
                   label="End Date"
-                  value={formData.to_date ? new Date(formData.to_date) : null}
-                  onChange={(date) => handleInputChange('to_date')(date?.toISOString().split('T')[0] || '')}
+                  value={formData.to_date ? parse(formData.to_date, 'yyyy-MM-dd', new Date()) : null}
+                  onChange={(date) => handleInputChange('to_date')(date ? format(date as Date, 'yyyy-MM-dd') : '')}
                   slotProps={{
                     textField: {
                       fullWidth: true,
@@ -191,13 +191,13 @@ const OTRegistrationForm: React.FC<OTFormProps> = ({ onSubmit, isLoading }) => {
               </Box>
 
               {/* Time Range */}
-              <Box>
+              <Box sx={{ gridColumn: '1 / -1' }}>
                 <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, mt: 2 }}>
                   Time Window
                 </Typography>
               </Box>
               
-              <Box sx={{ gridColumn: { xs: 'span 12', sm: 'span 6' } }}>
+              <Box sx={{ gridColumn: { xs: '1 / -1', sm: 'auto' } }}>
                 <TimePicker
                   label="Start Time"
                   value={formData.from_time ? new Date(`2000-01-01T${formData.from_time}`) : null}
@@ -216,7 +216,7 @@ const OTRegistrationForm: React.FC<OTFormProps> = ({ onSubmit, isLoading }) => {
                 />
               </Box>
               
-              <Box sx={{ gridColumn: { xs: 'span 12', sm: 'span 6' } }}>
+              <Box sx={{ gridColumn: { xs: '1 / -1', sm: 'auto' } }}>
                 <TimePicker
                   label="End Time"
                   value={formData.to_time ? new Date(`2000-01-01T${formData.to_time}`) : null}
@@ -236,13 +236,13 @@ const OTRegistrationForm: React.FC<OTFormProps> = ({ onSubmit, isLoading }) => {
               </Box>
 
               {/* OT Configuration */}
-              <Box>
+              <Box sx={{ gridColumn: '1 / -1' }}>
                 <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, mt: 2 }}>
                   OT Configuration
                 </Typography>
               </Box>
               
-              <Box sx={{ gridColumn: { xs: 'span 12', sm: 'span 6' } }}>
+              <Box sx={{ gridColumn: { xs: '1 / -1', sm: 'auto' } }}>
                 <FormControl fullWidth error={!!errors.ot_type}>
                   <InputLabel>OT Type</InputLabel>
                   <Select
@@ -257,7 +257,7 @@ const OTRegistrationForm: React.FC<OTFormProps> = ({ onSubmit, isLoading }) => {
                 </FormControl>
               </Box>
               
-              <Box sx={{ gridColumn: { xs: 'span 12', sm: 'span 6' } }}>
+              <Box sx={{ gridColumn: { xs: '1 / -1', sm: 'auto' } }}>
                 <FormControl fullWidth error={!!errors.ot_benefit_type}>
                   <InputLabel>Benefit Type</InputLabel>
                   <Select
@@ -274,88 +274,78 @@ const OTRegistrationForm: React.FC<OTFormProps> = ({ onSubmit, isLoading }) => {
               </Box>
 
               {/* Reason */}
-              <Box sx={{ gridColumn: 'span 12' }}>
+              <Box sx={{ gridColumn: '1 / -1' }}>
                 <TextField
-                  fullWidth
-                  label="Reason for Overtime"
-                  multiline
-                  rows={3}
+                  label="Reason"
                   value={formData.reason}
                   onChange={handleInputChange('reason')}
-                  placeholder="Please provide a detailed reason for the overtime request..."
+                  fullWidth
+                  multiline
+                  minRows={3}
                   error={!!errors.reason}
                   helperText={errors.reason}
                   disabled={isLoading}
                 />
               </Box>
-            </Box>
 
-            <Divider sx={{ my: 3 }} />
+              <Box sx={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <Chip
+                      icon={<CalendarToday />}
+                      label={`To: ${formData.to_date || 'Not selected'}`}
+                      color={formData.to_date ? 'primary' : 'default'}
+                      variant={formData.to_date ? 'filled' : 'outlined'}
+                    />
+                    <Chip
+                      icon={<AccessTime />}
+                      label={`${formData.from_time || '00:00'} - ${formData.to_time || '00:00'}`}
+                      color={formData.from_time && formData.to_time ? 'secondary' : 'default'}
+                      variant={formData.from_time && formData.to_time ? 'filled' : 'outlined'}
+                    />
+                    {calculateDuration() && (
+                      <Chip
+                        label={`Duration: ${calculateDuration()}`}
+                        color="info"
+                        variant="outlined"
+                      />
+                    )}
+                  </Box>
 
-            {/* Summary */}
-            <Paper elevation={1} sx={{ p: 2, mb: 2, bgcolor: 'grey.50' }}>
-              <Typography variant="subtitle2" gutterBottom>
-                Registration Summary
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1 }}>
-                <Chip
-                  icon={<CalendarToday />}
-                  label={`From: ${formData.from_date || 'Not selected'}`}
-                  color={formData.from_date ? 'primary' : 'default'}
-                  variant={formData.from_date ? 'filled' : 'outlined'}
-                />
-                <Chip
-                  icon={<CalendarToday />}
-                  label={`To: ${formData.to_date || 'Not selected'}`}
-                  color={formData.to_date ? 'primary' : 'default'}
-                  variant={formData.to_date ? 'filled' : 'outlined'}
-                />
-                <Chip
-                  icon={<AccessTime />}
-                  label={`${formData.from_time || '00:00'} - ${formData.to_time || '00:00'}`}
-                  color={formData.from_time && formData.to_time ? 'secondary' : 'default'}
-                  variant={formData.from_time && formData.to_time ? 'filled' : 'outlined'}
-                />
-                {calculateDuration() && (
-                  <Chip
-                    label={`Duration: ${calculateDuration()}`}
-                    color="info"
-                    variant="outlined"
-                  />
-                )}
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    <Chip
+                      label={`Type: ${formData.ot_type}`}
+                      color="primary"
+                      variant="outlined"
+                      size="small"
+                    />
+                    <Chip
+                      label={`Benefit: ${formData.ot_benefit_type}`}
+                      color="secondary"
+                      variant="outlined"
+                      size="small"
+                    />
+                  </Box>
+                </Box>
+
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', width: { xs: '100%', sm: 'auto' } }}>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    size="large"
+                    disabled={isLoading}
+                    sx={{ minWidth: 120, width: { xs: '100%', sm: 'auto' } }}
+                  >
+                    {isLoading ? (
+                      <CircularProgress size={24} color="inherit" />
+                    ) : (
+                      'Register OT'
+                    )}
+                  </Button>
+                </Box>
               </Box>
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                <Chip
-                  label={`Type: ${formData.ot_type}`}
-                  color="primary"
-                  variant="outlined"
-                  size="small"
-                />
-                <Chip
-                  label={`Benefit: ${formData.ot_benefit_type}`}
-                  color="secondary"
-                  variant="outlined"
-                  size="small"
-                />
-              </Box>
-            </Paper>
-
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <Button
-                type="submit"
-                variant="contained"
-                size="large"
-                disabled={isLoading}
-                sx={{ minWidth: 120 }}
-              >
-                {isLoading ? (
-                  <CircularProgress size={24} color="inherit" />
-                ) : (
-                  'Register OT'
-                )}
-              </Button>
             </Box>
-          </Box>
+          </form>
         </CardContent>
       </Card>
     </LocalizationProvider>
