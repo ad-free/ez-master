@@ -38,6 +38,8 @@ const WFHRegistrationForm: React.FC<WFHFormProps> = ({ onSubmit, isLoading }) =>
     to_date: '',
     reason: 'WFH as planned',
   });
+  // added separate state for custom reason when "Other" is selected
+  const [customReason, setCustomReason] = useState<string>('');
   const [errors, setErrors] = useState<Partial<WFHFormData>>({});
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -63,8 +65,16 @@ const WFHRegistrationForm: React.FC<WFHFormProps> = ({ onSubmit, isLoading }) =>
     if (formData.from_date && formData.to_date && formData.from_date > formData.to_date) {
       newErrors.to_date = 'End date must be after start date';
     }
-    if (!formData.reason.trim()) {
-      newErrors.reason = 'Reason is required';
+
+    // require customReason when Other is selected
+    if (formData.reason === 'Other') {
+      if (!customReason.trim()) {
+        newErrors.reason = 'Custom reason is required';
+      }
+    } else {
+      if (!formData.reason.trim()) {
+        newErrors.reason = 'Reason is required';
+      }
     }
 
     setErrors(newErrors);
@@ -78,14 +88,21 @@ const WFHRegistrationForm: React.FC<WFHFormProps> = ({ onSubmit, isLoading }) =>
       return;
     }
 
+    const payload: WFHFormData = {
+      from_date: formData.from_date,
+      to_date: formData.to_date,
+      reason: formData.reason === 'Other' ? customReason.trim() : formData.reason,
+    };
+
     try {
-      await onSubmit(formData);
+      await onSubmit(payload);
       setSuccessMessage('WFH registration submitted successfully!');
       setFormData({
         from_date: '',
         to_date: '',
         reason: 'WFH as planned',
       });
+      setCustomReason('');
       setTimeout(() => setSuccessMessage(''), 5000);
     } catch (error) {
       // Error handling is done in parent component
@@ -161,7 +178,17 @@ const WFHRegistrationForm: React.FC<WFHFormProps> = ({ onSubmit, isLoading }) =>
                   <InputLabel>Reason for WFH</InputLabel>
                   <Select
                     value={formData.reason}
-                    onChange={handleInputChange('reason')}
+                    onChange={(e) => {
+                      const value = e.target.value as string;
+                      setFormData(prev => ({ ...prev, reason: value }));
+                      // clear custom reason when switching away from Other
+                      if (value !== 'Other') {
+                        setCustomReason('');
+                      }
+                      if (errors.reason) {
+                        setErrors(prev => ({ ...prev, reason: undefined }));
+                      }
+                    }}
                     label="Reason for WFH"
                     disabled={isLoading}
                   >
@@ -186,10 +213,17 @@ const WFHRegistrationForm: React.FC<WFHFormProps> = ({ onSubmit, isLoading }) =>
                     label="Custom Reason"
                     multiline
                     rows={3}
-                    value={formData.reason}
-                    onChange={handleInputChange('reason')}
+                    value={customReason}
+                    onChange={(e) => {
+                      setCustomReason(e.target.value);
+                      if (errors.reason) {
+                        setErrors(prev => ({ ...prev, reason: undefined }));
+                      }
+                    }}
                     placeholder="Please specify your reason for working from home..."
                     disabled={isLoading}
+                    error={!!errors.reason}
+                    helperText={errors.reason}
                   />
                 </Box>
               )}
@@ -210,6 +244,9 @@ const WFHRegistrationForm: React.FC<WFHFormProps> = ({ onSubmit, isLoading }) =>
                   label={`To: ${formData.to_date || 'Not selected'}`}
                   color={formData.to_date ? 'primary' : undefined}
                   variant={formData.to_date ? 'filled' : 'outlined'}
+                />
+                <Chip
+                  label={`Reason: ${formData.reason === 'Other' ? (customReason || 'Other') : formData.reason}`}
                 />
               </Box>
               
