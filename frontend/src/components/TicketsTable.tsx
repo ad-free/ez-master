@@ -112,6 +112,9 @@ const TicketsTable: React.FC<Props> = ({ tickets, loading, onReject }) => {
               </TableSortLabel>
             </TableCell>
             <TableCell sx={{ fontWeight: 700, textTransform: 'uppercase', color: 'text.secondary' }}>Reason</TableCell>
+            <TableCell sx={{ fontWeight: 700, textTransform: 'uppercase', color: 'text.secondary' }}>
+              Applied Date
+            </TableCell>
             <TableCell sx={{ fontWeight: 700, textTransform: 'uppercase', color: 'text.secondary' }} sortDirection={orderBy === 'approver' ? order : false}>
               <TableSortLabel active={orderBy === 'approver'} direction={orderBy === 'approver' ? order : 'asc'} onClick={() => handleRequestSort('approver')}>
                 Approver
@@ -131,6 +134,7 @@ const TicketsTable: React.FC<Props> = ({ tickets, loading, onReject }) => {
               <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={t.reason}>
                 {t.reason}
               </TableCell>
+              <TableCell>{t.created_at}</TableCell>
               <TableCell>{t.approver}</TableCell>
               <TableCell align="right">
                 <Button
