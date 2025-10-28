@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Iterable, Tuple
 
+import os
 import httpx
 
 from app.core.constants import EZ_APIS
@@ -10,10 +11,25 @@ from app.core.exceptions import EzException
 from app.core.types import OTBenefitType, TicketStatus
 
 
+def check_permission(username: str) -> bool:
+    """Check if EZ Tool integration is permitted.
+
+    Returns:
+        bool: True if permitted, False otherwise.
+    """
+    user_whitelist = os.environ.get("USER_WHITELIST", None)
+    if not user_whitelist:
+        return True  # Enable full access if no whitelist is set
+    return username in user_whitelist.split(",")
+
+
 class EzClient:
     """Client wrapper for EZ APIs."""
 
     def login(self, username: str, password: str) -> str:
+        if not check_permission(username):
+            raise EzException(f"User ({username}) is not permitted to use EZ Tool integration.")
+
         payload = {"UserName": username, "Password": password}
         response = httpx.post(url=EZ_APIS["signin"], json=payload, timeout=10)
         if response.status_code != 200:
