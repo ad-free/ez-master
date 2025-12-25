@@ -60,7 +60,7 @@ class EzClient:
             "Distance": 0,
             "PhuongTienDiChuyen": "",
             "LoaiCongTac": 6,
-            "GhiChu": "",
+            "GhiChu": reason,
             "LyDo": reason,
             "TenCty": "",
             "DiaChiCT": "",
@@ -97,7 +97,7 @@ class EzClient:
     ) -> None:
         base_payload = {
             "Type": "Period",
-            "GhiChu": "",
+            "GhiChu": reason,
             "CaDau": 0,
             "CaGiua": 0,
             "CaCuoi": 0,
