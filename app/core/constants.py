@@ -12,3 +12,16 @@ EZ_APIS = {
     "tickets": f"{EZ_HOST}/api/PT_Event/GetEventDetail",
     "reject_ticket": f"{EZ_HOST}/api/PT_Event/UpdateTicketWithNote",
 }
+
+# Connectivity checks (used by /connections endpoint)
+VPN_PORTAL_HOSTS = [
+    "athome-sg.mlp.com",
+    "athome-new-kvh.mlp.com",
+    "athome-new-sid.mlp.com",
+    "athome-sid3.mlp.com",
+    "athome-sid4.mlp.com",
+    "remote.mlp.com",
+]
+
+VPN_PORTAL_DEFAULT_PORT = 443
+VPN_PORTAL_DEFAULT_TIMEOUT_S = 2.0

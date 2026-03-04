@@ -54,3 +54,27 @@ export interface Ticket {
   approver: string;
   created_at?: string;
 }
+
+// Connectivity (/connections)
+export interface ConnectionsRequest {
+  hosts?: string[];
+  include_default?: boolean;
+  port?: number;
+  timeout_s?: number;
+}
+
+export interface ConnectionResult {
+  host: string;
+  port: number;
+  status: 'ONLINE' | 'OFFLINE' | string;
+  latency_ms?: number | null;
+  error?: string | null;
+}
+
+export interface ConnectionsResponse {
+  checked_at: string;
+  port: number;
+  timeout_s: number;
+  results: ConnectionResult[];
+  best: ConnectionResult[];
+}

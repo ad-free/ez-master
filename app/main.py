@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routers import actions as actions_router
 from app.routers import auth as auth_router
 from app.routers import common as common_router
+from app.routers import connectivity as connectivity_router
 from app.routers import salary as salary_router
 
 app = FastAPI(
@@ -32,3 +33,4 @@ app.include_router(auth_router.router)
 app.include_router(actions_router.router)
 app.include_router(salary_router.router)
 app.include_router(common_router.router)
+app.include_router(connectivity_router.router)

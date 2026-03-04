@@ -27,6 +27,7 @@ import {
   Logout,
   Person,
   ConfirmationNumber,
+  Wifi,
 } from '@mui/icons-material';
 
 // Import our new components
@@ -35,6 +36,7 @@ import OTRegistrationForm from './OTRegistrationForm';
 import SalaryDownload from './SalaryDownload';
 import TicketsTable from './TicketsTable';
 import TablePagination from '@mui/material/TablePagination';
+import ConnectionsCard from './ConnectionsCard';
 
 // Import API client
 import { apiClient } from '../services/apiClient';
@@ -103,7 +105,7 @@ const DashboardPage: React.FC<DashboardProps> = ({ user, onLogout }) => {
   };
 
   React.useEffect(() => {
-    if (activeTab === 0) {
+    if (activeTab === 1) {
       loadTickets();
     }
     // eslint-disable-next-line
@@ -293,6 +295,11 @@ const DashboardPage: React.FC<DashboardProps> = ({ user, onLogout }) => {
             sx={{ borderBottom: 1, borderColor: 'divider' }}
           >
             <Tab
+              icon={<Wifi />}
+              label="Connections"
+              iconPosition="start"
+            />
+            <Tab
               icon={<ConfirmationNumber />}
               label="Tickets"
               iconPosition="start"
@@ -314,8 +321,13 @@ const DashboardPage: React.FC<DashboardProps> = ({ user, onLogout }) => {
             />
           </Tabs>
 
-          {/* Tickets Tab (now first) */}
+          {/* Connections Tab */}
           <TabPanel value={activeTab} index={0}>
+            <ConnectionsCard />
+          </TabPanel>
+
+          {/* Tickets Tab */}
+          <TabPanel value={activeTab} index={1}>
             <Typography variant="h6" gutterBottom>
               Tickets
             </Typography>
@@ -340,24 +352,24 @@ const DashboardPage: React.FC<DashboardProps> = ({ user, onLogout }) => {
             />
           </TabPanel>
 
-          {/* WFH Tab (now second) */}
-          <TabPanel value={activeTab} index={1}>
+          {/* WFH Tab */}
+          <TabPanel value={activeTab} index={2}>
             <WFHRegistrationForm
               onSubmit={handleWFHSubmit}
               isLoading={isLoading}
             />
           </TabPanel>
 
-          {/* OT Tab (now third) */}
-          <TabPanel value={activeTab} index={2}>
+          {/* OT Tab */}
+          <TabPanel value={activeTab} index={3}>
             <OTRegistrationForm
               onSubmit={handleOTSubmit}
               isLoading={isLoading}
             />
           </TabPanel>
 
-          {/* Salary Tab (now fourth) */}
-          <TabPanel value={activeTab} index={3}>
+          {/* Salary Tab */}
+          <TabPanel value={activeTab} index={4}>
             <SalaryDownload
               onDownload={handleSalaryDownload}
               isLoading={isLoading}

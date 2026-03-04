@@ -40,6 +40,29 @@ interface ApiResponse<T = any> {
   data?: T;
 }
 
+interface ConnectionsRequest {
+  hosts?: string[];
+  include_default?: boolean;
+  port?: number;
+  timeout_s?: number;
+}
+
+interface ConnectionResult {
+  host: string;
+  port: number;
+  status: string;
+  latency_ms?: number | null;
+  error?: string | null;
+}
+
+interface ConnectionsResponse {
+  checked_at: string;
+  port: number;
+  timeout_s: number;
+  results: ConnectionResult[];
+  best: ConnectionResult[];
+}
+
 class ApiClient {
   private client: any;
   private token: string | null = null;
@@ -173,6 +196,17 @@ class ApiClient {
 
   async rejectTicket(ticket_id: number): Promise<{ message?: string; ticket_id?: number }> {
     const response = await this.client.post(`/tickets/${ticket_id}/reject`);
+    return response.data;
+  }
+
+  // Connectivity endpoints
+  async getConnections(): Promise<ConnectionsResponse> {
+    const response = await this.client.get('/connections');
+    return response.data;
+  }
+
+  async checkConnections(req: ConnectionsRequest): Promise<ConnectionsResponse> {
+    const response = await this.client.post('/connections', req);
     return response.data;
   }
 }
