@@ -16,6 +16,7 @@ EZ_APIS = {
 # Connectivity checks (used by /connections endpoint)
 VPN_PORTAL_HOSTS = [
     "remote.mlp.com",
+    "athome-sg.mlp.com",
     "athome-kvh.mlp.com",
     "athome-kvh3.mlp.com",
     "athome-new-kvh.mlp.com",
