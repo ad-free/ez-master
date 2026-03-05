@@ -22,11 +22,14 @@ async def check_tcp_port_async(host: str, port: int, timeout_s: float) -> TcpChe
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(timeout_s)
-            result = sock.connect_ex((host, port))
+            sock.connect((host, port))
             end = time.perf_counter()
-            if result == 0:
-                return TcpCheckResult(online=True, latency_ms=round((end - start) * 1000, 2))
-            return TcpCheckResult(online=False, latency_ms=None)
+            return TcpCheckResult(online=True, latency_ms=round((end - start) * 1000, 2))
+        except socket.timeout:
+            return TcpCheckResult(online=False, latency_ms=None, error="Connection timeout")
+        except OSError as exc:
+            # Connection refused, host unreachable, etc.
+            return TcpCheckResult(online=False, latency_ms=None, error=str(exc))
         except Exception as exc:  # noqa: BLE001 - we surface error string in API
             return TcpCheckResult(online=False, latency_ms=None, error=str(exc))
         finally:

@@ -25,6 +25,7 @@ function parseHosts(text: string): string[] {
 const ConnectionsCard: React.FC = () => {
   const [hostsText, setHostsText] = React.useState('');
   const [includeDefault, setIncludeDefault] = React.useState(true);
+  const [timeout, setTimeout] = React.useState('5');
   const [loading, setLoading] = React.useState(false);
   const [data, setData] = React.useState<ConnectionsResponse | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -54,9 +55,11 @@ const ConnectionsCard: React.FC = () => {
     setError(null);
     try {
       const hosts = parseHosts(hostsText);
+      const timeoutNum = parseFloat(timeout) || 5;
       const resp = await apiClient.checkConnections({
         hosts,
         include_default: includeDefault,
+        timeout_s: timeoutNum,
       } as any);
       setData(resp);
     } catch (err: any) {
@@ -67,13 +70,21 @@ const ConnectionsCard: React.FC = () => {
     }
   };
 
-  const bestHost = data?.results?.find((r) => r.status === 'ONLINE' && r.latency_ms != null)
-    ? data.results.reduce((best, curr) => {
-        if (curr.status !== 'ONLINE' || curr.latency_ms == null) return best;
-        if (!best || curr.latency_ms < (best.latency_ms ?? Infinity)) return curr;
-        return best;
-      }, data.results[0])
-    : null;
+  const rankedHosts = React.useMemo(() => {
+    if (!data?.results) return { top3: [], rankMap: new Map(), onlineCount: 0, offlineCount: 0 };
+    
+    const online = data.results
+      .filter((r) => r.status === 'ONLINE' && r.latency_ms != null)
+      .sort((a, b) => (a.latency_ms ?? Infinity) - (b.latency_ms ?? Infinity));
+    
+    const rankMap = new Map<string, number>();
+    online.slice(0, 3).forEach((r, idx) => rankMap.set(r.host, idx + 1));
+    
+    const onlineCount = data.results.filter((r) => r.status === 'ONLINE').length;
+    const offlineCount = data.results.length - onlineCount;
+    
+    return { top3: online.slice(0, 3), rankMap, onlineCount, offlineCount };
+  }, [data]);
 
   return (
     <Box>
@@ -115,6 +126,16 @@ const ConnectionsCard: React.FC = () => {
               label="Include default hosts"
               sx={{ mt: 1 }}
             />
+            <TextField
+              label="Timeout (seconds)"
+              value={timeout}
+              onChange={(e) => setTimeout(e.target.value)}
+              type="number"
+              size="small"
+              disabled={loading}
+              inputProps={{ min: 1, max: 30, step: 0.5 }}
+              sx={{ mt: 1, width: '100%' }}
+            />
             <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
               <Button variant="contained" onClick={handleCheck} disabled={loading}>
                 Check
@@ -126,17 +147,33 @@ const ConnectionsCard: React.FC = () => {
           </Box>
 
           <Box>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              Results {data ? `(port ${data.port}, timeout ${data.timeout_s}s)` : ''}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexWrap: 'wrap' }}>
+              <Typography variant="body2" color="text.secondary">
+                Results {data ? `(port ${data.port}, timeout ${data.timeout_s}s)` : ''}
+              </Typography>
+              {data && (
+                <>
+                  <Chip size="small" label={`${rankedHosts.onlineCount} Online`} color="success" variant="outlined" />
+                  <Chip size="small" label={`${rankedHosts.offlineCount} Offline`} color="default" variant="outlined" />
+                </>
+              )}
+            </Box>
 
-            <Stack spacing={1}>
+            <Stack spacing={1} sx={{ maxHeight: 500, overflowY: 'auto', pr: 1 }}>
               {data?.results?.map((r) => {
-                const isBest = bestHost && r.host === bestHost.host && r.status === 'ONLINE';
+                const rank = rankedHosts.rankMap.get(r.host);
+                const rankConfig = rank === 1 
+                  ? { label: '🥇 Best', color: 'success' as const, bgColor: 'rgba(46, 125, 50, 0.08)' }
+                  : rank === 2
+                  ? { label: '🥈 2nd', color: 'info' as const, bgColor: 'rgba(2, 136, 209, 0.08)' }
+                  : rank === 3
+                  ? { label: '🥉 3rd', color: 'warning' as const, bgColor: 'rgba(237, 108, 2, 0.08)' }
+                  : null;
+                
                 return (
                   <Tooltip
                     key={r.host}
-                    title={isBest ? 'Best latency' : ''}
+                    title={rankConfig ? `${rankConfig.label} latency` : ''}
                     placement="left"
                     arrow
                   >
@@ -148,15 +185,15 @@ const ConnectionsCard: React.FC = () => {
                         gap: 2,
                         p: 1,
                         border: '1px solid',
-                        borderColor: isBest ? 'success.main' : 'divider',
+                        borderColor: rankConfig ? `${rankConfig.color}.main` : 'divider',
                         borderRadius: 1,
-                        bgcolor: isBest ? 'success.50' : 'transparent',
+                        bgcolor: rankConfig ? rankConfig.bgColor : 'transparent',
                       }}
                     >
                       <Box sx={{ minWidth: 0 }}>
                         <Typography
                           variant="body2"
-                          sx={{ fontWeight: isBest ? 700 : 600 }}
+                          sx={{ fontWeight: rank ? 700 : 600 }}
                           noWrap
                         >
                           {r.host}
@@ -168,8 +205,8 @@ const ConnectionsCard: React.FC = () => {
                         ) : null}
                       </Box>
                       <Stack direction="row" spacing={1} alignItems="center">
-                        {isBest && (
-                          <Chip size="small" label="Best" color="success" variant="filled" />
+                        {rankConfig && (
+                          <Chip size="small" label={rankConfig.label} color={rankConfig.color} variant="filled" />
                         )}
                         <Chip
                           size="small"
@@ -182,7 +219,7 @@ const ConnectionsCard: React.FC = () => {
                           sx={{
                             minWidth: 72,
                             textAlign: 'right',
-                            fontWeight: isBest ? 700 : 400,
+                            fontWeight: rank ? 700 : 400,
                           }}
                         >
                           {r.status === 'ONLINE' && r.latency_ms != null ? `${r.latency_ms}ms` : '—'}
