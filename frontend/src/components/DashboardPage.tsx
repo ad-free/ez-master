@@ -5,42 +5,39 @@ import {
   Toolbar,
   Typography,
   Container,
-  Card,
-  CardContent,
-  CardHeader,
   Avatar,
-  Chip,
-  Tab,
-  Tabs,
   Paper,
   IconButton,
-  Menu,
-  MenuItem,
   Alert,
   Snackbar,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Drawer,
+  useTheme,
+  useMediaQuery,
+  Badge,
+  Tooltip,
 } from '@mui/material';
 import {
-  AccountCircle,
   Home,
   Schedule,
   AttachMoney,
   Logout,
-  Person,
   ConfirmationNumber,
-  Wifi,
+  Menu as MenuIcon,
+  NotificationsOutlined,
 } from '@mui/icons-material';
 
-// Import our new components
 import WFHRegistrationForm from './WFHRegistrationForm';
 import OTRegistrationForm from './OTRegistrationForm';
 import SalaryDownload from './SalaryDownload';
-import TicketsTable from './TicketsTable';
-import TablePagination from '@mui/material/TablePagination';
-import ConnectionsCard from './ConnectionsCard';
+import TimecardCalendar from './TimecardCalendar';
 
-// Import API client
 import { apiClient } from '../services/apiClient';
-import type { RegisterWFHRequest, RegisterOTRequest, Ticket } from '../types/api'
+import type { RegisterWFHRequest, RegisterOTRequest } from '../types/api'
 
 interface ProfileResponse {
   ID: string;
@@ -57,15 +54,19 @@ interface DashboardProps {
   onLogout: () => void;
 }
 
+const DRAWER_WIDTH = 260;
+
+const menuItems = [
+  { label: 'Tickets Queue', icon: <ConfirmationNumber /> },
+  { label: 'Register WFH', icon: <Home /> },
+  { label: 'Register Overtime', icon: <Schedule /> },
+  { label: 'Salary History', icon: <AttachMoney /> },
+];
+
 const DashboardPage: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState(0);
-  // Tickets state (tab index 3)
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [loadingTickets, setLoadingTickets] = useState(false);
-  const [ticketsError, setTicketsError] = useState<string | null>(null);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  
   const [isLoading, setIsLoading] = useState(false);
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
@@ -73,60 +74,17 @@ const DashboardPage: React.FC<DashboardProps> = ({ user, onLogout }) => {
     severity: 'success' | 'error' | 'info';
   }>({ open: false, message: '', severity: 'success' });
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
-    setActiveTab(newValue);
-  };
+  const theme = useTheme();
+  const isMdUp = useMediaQuery(theme.breakpoints.up('md'));
 
   const showSnackbar = (message: string, severity: 'success' | 'error' | 'info' = 'success') => {
     setSnackbar({ open: true, message, severity });
-  };
-
-  const loadTickets = async () => {
-    setLoadingTickets(true);
-    setTicketsError(null);
-    try {
-      const data = await apiClient.getTickets('Pending', 1000);
-      setTickets(data as Ticket[]);
-      setPage(0); // Reset to first page on reload
-    } catch (err: any) {
-      console.error('Failed to load tickets', err);
-      setTicketsError(err?.response?.data?.detail || err?.message || 'Failed to load tickets');
-    } finally {
-      setLoadingTickets(false);
-    }
-  };
-
-  React.useEffect(() => {
-    if (activeTab === 1) {
-      loadTickets();
-    }
-    // eslint-disable-next-line
-  }, [activeTab]);
-
-  const handleRejectTicket = async (ticketId: number | string) => {
-    try {
-      await apiClient.rejectTicket(Number(ticketId));
-      setTickets(prev => prev.filter(t => t.ticket_id !== String(ticketId)));
-      showSnackbar(`Rejected ticket ${ticketId}`, 'success');
-    } catch (err: any) {
-      console.error('Reject ticket failed', err);
-      showSnackbar(err?.response?.data?.detail || err?.message || 'Failed to reject ticket', 'error');
-    }
   };
 
   const handleCloseSnackbar = () => {
     setSnackbar(prev => ({ ...prev, open: false }));
   };
 
-  // Real API calls to your backend
   const handleWFHSubmit = async (data: RegisterWFHRequest) => {
     setIsLoading(true);
     try {
@@ -156,7 +114,6 @@ const DashboardPage: React.FC<DashboardProps> = ({ user, onLogout }) => {
     try {
       const blob = await apiClient.downloadSalary(date);
       
-      // Create download link
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -166,7 +123,7 @@ const DashboardPage: React.FC<DashboardProps> = ({ user, onLogout }) => {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       
-      showSnackbar(`Salary PDF for ${date || 'current month'} downloaded successfully!`, 'success');
+      showSnackbar(`Salary PDF downloaded successfully!`, 'success');
     } catch (error: any) {
       showSnackbar(error.response?.data?.detail || 'Failed to download salary PDF', 'error');
     } finally {
@@ -174,221 +131,198 @@ const DashboardPage: React.FC<DashboardProps> = ({ user, onLogout }) => {
     }
   };
 
-  const TabPanel: React.FC<{ children: React.ReactNode; value: number; index: number }> = ({
-    children,
-    value,
-    index,
-  }) => (
-    <div role="tabpanel" hidden={value !== index}>
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
-    </div>
+  const sidebarContent = (
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* Brand */}
+      <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Box sx={{
+          width: 36, height: 36, borderRadius: '10px',
+          bgcolor: 'primary.main', color: 'common.white',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontWeight: 800, fontSize: '0.875rem',
+          boxShadow: '0 3px 8px rgba(99, 102, 241, 0.35)',
+        }}>
+          EZ
+        </Box>
+        <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>
+          EZ Master
+        </Typography>
+      </Box>
+
+      {/* Navigation */}
+      <List sx={{ px: 1.5, flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+        {menuItems.map((item, idx) => {
+          const isSelected = activeTab === idx;
+          return (
+            <ListItem key={item.label} disablePadding sx={{ position: 'relative' }}>
+              {isSelected && (
+                <Box sx={{
+                  position: 'absolute', left: 0, top: '50%', translate: '0 -50%',
+                  width: 3, height: 24, borderRadius: '0 4px 4px 0',
+                  bgcolor: 'primary.main',
+                  boxShadow: '0 0 8px rgba(99, 102, 241, 0.4)',
+                }} />
+              )}
+              <ListItemButton
+                onClick={() => { setActiveTab(idx); setMobileOpen(false); }}
+                sx={{
+                  borderRadius: 2, py: 1.25, px: 2, ml: 0.5,
+                  bgcolor: isSelected ? 'rgba(99, 102, 241, 0.08)' : 'transparent',
+                  color: isSelected ? 'primary.main' : 'text.secondary',
+                  '&:hover': {
+                    bgcolor: isSelected ? 'rgba(99, 102, 241, 0.12)' : 'action.hover',
+                    color: isSelected ? 'primary.main' : 'text.primary',
+                  },
+                  transition: 'all 0.2s',
+                }}
+              >
+                <ListItemIcon sx={{
+                  minWidth: 38,
+                  color: isSelected ? 'primary.main' : 'text.secondary',
+                  '& .MuiSvgIcon-root': { fontSize: 20 },
+                }}>
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.label}
+                  primaryTypographyProps={{
+                    fontWeight: isSelected ? 700 : 500,
+                    fontSize: '0.9rem',
+                  }}
+                />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
+      </List>
+
+      {/* Profile */}
+      <Box sx={{
+        p: 2, m: 1.5, borderRadius: 2,
+        bgcolor: 'action.hover',
+        display: 'flex', alignItems: 'center', gap: 1.5,
+      }}>
+        <Avatar sx={{ bgcolor: 'secondary.main', width: 34, height: 34, fontSize: '0.8rem', fontWeight: 600 }}>
+          {user.FirstName.charAt(0)}{user.LastName.charAt(0)}
+        </Avatar>
+        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+          <Typography variant="body2" noWrap sx={{ fontWeight: 700, lineHeight: 1.3 }}>
+            {user.FirstName} {user.LastName}
+          </Typography>
+          <Typography variant="caption" noWrap color="text.secondary">
+            {user.ChucVu}
+          </Typography>
+        </Box>
+        <Tooltip title="Logout">
+          <IconButton onClick={onLogout} size="small" color="error" sx={{ borderRadius: 1.5 }}>
+            <Logout fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Box>
+    </Box>
   );
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
-      {/* App Bar */}
-      <AppBar position="static" elevation={1}>
-        <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            EZ Master Dashboard
-          </Typography>
-          <Typography variant="body2" sx={{ mr: 2 }}>
-            Welcome, {user.FirstName} {user.LastName}
-          </Typography>
-          <IconButton
-            size="large"
-            edge="end"
-            aria-label="account of current user"
-            aria-controls="menu-appbar"
-            aria-haspopup="true"
-            onClick={handleMenuOpen}
-            color="inherit"
-          >
-            <AccountCircle />
-          </IconButton>
-          <Menu
-            id="menu-appbar"
-            anchorEl={anchorEl}
-            anchorOrigin={{
-              vertical: 'top',
-              horizontal: 'right',
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'grey.50' }}>
+      {/* Sidebar */}
+      <Box component="nav" sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}>
+        {isMdUp ? (
+          <Drawer
+            variant="permanent"
+            open
+            PaperProps={{
+              sx: {
+                width: DRAWER_WIDTH,
+                borderRight: '1px solid',
+                borderColor: 'divider',
+                bgcolor: 'background.paper',
+              },
             }}
-            keepMounted
-            transformOrigin={{
-              vertical: 'top',
-              horizontal: 'right',
-            }}
-            open={Boolean(anchorEl)}
-            onClose={handleMenuClose}
           >
-            <MenuItem onClick={handleMenuClose}>
-              <Person sx={{ mr: 1 }} />
-              Profile
-            </MenuItem>
-            <MenuItem onClick={onLogout}>
-              <Logout sx={{ mr: 1 }} />
-              Logout
-            </MenuItem>
-          </Menu>
-        </Toolbar>
-      </AppBar>
+            {sidebarContent}
+          </Drawer>
+        ) : (
+          <Drawer
+            variant="temporary"
+            open={mobileOpen}
+            onClose={() => setMobileOpen(false)}
+            ModalProps={{ keepMounted: true }}
+            PaperProps={{ sx: { width: DRAWER_WIDTH } }}
+          >
+            {sidebarContent}
+          </Drawer>
+        )}
+      </Box>
 
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        {/* Profile Card */}
-        <Card sx={{ mb: 3 }}>
-          <CardHeader
-            avatar={
-              <Avatar sx={{ bgcolor: 'primary.main' }}>
-                {user.FirstName.charAt(0)}{user.LastName.charAt(0)}
-              </Avatar>
-            }
-            title={`${user.FirstName} ${user.LastName}`}
-            subheader={user.Email}
-            action={
-              <Chip label={user.ChucVu} color="primary" variant="outlined" />
-            }
-          />
-          <CardContent>
-            <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' } }}>
+      {/* Main */}
+      <Box component="main" sx={{
+        flexGrow: 1, width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
+        minHeight: '100vh', display: 'flex', flexDirection: 'column',
+      }}>
+        {/* Top Navbar */}
+        <AppBar position="sticky" elevation={0} sx={{ bgcolor: 'background.paper', borderBottom: '1px solid', borderColor: 'divider' }}>
+          <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, sm: 3 } }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              {!isMdUp && (
+                <IconButton edge="start" onClick={() => setMobileOpen(true)} sx={{ mr: 0.5 }}>
+                  <MenuIcon />
+                </IconButton>
+              )}
               <Box>
-                <Typography variant="body2" color="text.secondary">
-                  Position
+                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, lineHeight: 1.2 }}>
+                  {menuItems[activeTab].label}
                 </Typography>
-                <Typography variant="body1" gutterBottom>
-                  {user.ChucVu}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="body2" color="text.secondary">
-                  Title
-                </Typography>
-                <Typography variant="body1" gutterBottom>
-                  {user.ChucDanh}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="body2" color="text.secondary">
-                  Department
-                </Typography>
-                <Typography variant="body1" gutterBottom>
-                  {user.PhongBan}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="body2" color="text.secondary">
-                  Employee ID
-                </Typography>
-                <Typography variant="body1" gutterBottom>
-                  {user.ID}
+                <Typography variant="caption" color="text.disabled">
+                  {activeTab === 0 ? 'View your tickets and calendar' :
+                   activeTab === 1 ? 'Register work-from-home days' :
+                   activeTab === 2 ? 'Register overtime hours' :
+                   'Download salary PDFs'}
                 </Typography>
               </Box>
             </Box>
-          </CardContent>
-        </Card>
 
-        {/* Main Content Tabs */}
-        <Paper sx={{ width: '100%' }}>
-          <Tabs
-            value={activeTab}
-            onChange={handleTabChange}
-            variant="fullWidth"
-            sx={{ borderBottom: 1, borderColor: 'divider' }}
-          >
-            <Tab
-              icon={<Wifi />}
-              label="Connections"
-              iconPosition="start"
-            />
-            <Tab
-              icon={<ConfirmationNumber />}
-              label="Tickets"
-              iconPosition="start"
-            />
-            <Tab
-              icon={<Home />}
-              label="Work From Home"
-              iconPosition="start"
-            />
-            <Tab
-              icon={<Schedule />}
-              label="Overtime"
-              iconPosition="start"
-            />
-            <Tab
-              icon={<AttachMoney />}
-              label="Salary"
-              iconPosition="start"
-            />
-          </Tabs>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <IconButton size="small" sx={{ borderRadius: 1.5 }}>
+                <Badge variant="dot" color="error">
+                  <NotificationsOutlined fontSize="small" />
+                </Badge>
+              </IconButton>
+              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                {user.FirstName}
+              </Typography>
+              <Avatar sx={{ width: 30, height: 30, fontSize: '0.75rem', fontWeight: 600, bgcolor: 'primary.main' }}>
+                {user.FirstName.charAt(0)}{user.LastName.charAt(0)}
+              </Avatar>
+            </Box>
+          </Toolbar>
+        </AppBar>
 
-          {/* Connections Tab */}
-          <TabPanel value={activeTab} index={0}>
-            <ConnectionsCard />
-          </TabPanel>
+        <Container maxWidth="lg" sx={{ mt: 3, mb: 4, flexGrow: 1 }}>
+          <Paper elevation={0} sx={{ p: { xs: 2, sm: 4 }, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+            {activeTab === 0 && <TimecardCalendar />}
+            {activeTab === 1 && (
+              <WFHRegistrationForm onSubmit={handleWFHSubmit} isLoading={isLoading} />
+            )}
+            {activeTab === 2 && (
+              <OTRegistrationForm onSubmit={handleOTSubmit} isLoading={isLoading} />
+            )}
+            {activeTab === 3 && (
+              <SalaryDownload onDownload={handleSalaryDownload} isLoading={isLoading} />
+            )}
+          </Paper>
+        </Container>
+      </Box>
 
-          {/* Tickets Tab */}
-          <TabPanel value={activeTab} index={1}>
-            <Typography variant="h6" gutterBottom>
-              Tickets
-            </Typography>
-            {ticketsError && <Alert severity="error" sx={{ mb: 2 }}>{ticketsError}</Alert>}
-            <TicketsTable
-              tickets={tickets.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)}
-              loading={loadingTickets}
-              onReject={handleRejectTicket}
-            />
-            <TablePagination
-              component="div"
-              count={tickets.length}
-              page={page}
-              onPageChange={(_e, newPage) => setPage(newPage)}
-              rowsPerPage={rowsPerPage}
-              onRowsPerPageChange={e => {
-                setRowsPerPage(parseInt(e.target.value, 10));
-                setPage(0);
-              }}
-              rowsPerPageOptions={[5, 10, 20, 50, 100]}
-              sx={{ mt: 2 }}
-            />
-          </TabPanel>
-
-          {/* WFH Tab */}
-          <TabPanel value={activeTab} index={2}>
-            <WFHRegistrationForm
-              onSubmit={handleWFHSubmit}
-              isLoading={isLoading}
-            />
-          </TabPanel>
-
-          {/* OT Tab */}
-          <TabPanel value={activeTab} index={3}>
-            <OTRegistrationForm
-              onSubmit={handleOTSubmit}
-              isLoading={isLoading}
-            />
-          </TabPanel>
-
-          {/* Salary Tab */}
-          <TabPanel value={activeTab} index={4}>
-            <SalaryDownload
-              onDownload={handleSalaryDownload}
-              isLoading={isLoading}
-            />
-          </TabPanel>
-        </Paper>
-      </Container>
-
-      {/* Snackbar for notifications */}
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={6000}
+        autoHideDuration={5000}
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
         <Alert
           onClose={handleCloseSnackbar}
           severity={snackbar.severity}
-          sx={{ width: '100%' }}
+          sx={{ width: '100%', borderRadius: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
         >
           {snackbar.message}
         </Alert>

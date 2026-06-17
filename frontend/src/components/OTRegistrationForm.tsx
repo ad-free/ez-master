@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import {
   Box,
-  Card,
-  CardContent,
   TextField,
   Button,
   Typography,
@@ -12,33 +10,24 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Chip,
-  
+  Paper,
+  Divider,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { CalendarToday, Schedule, AccessTime } from '@mui/icons-material';
+import { Schedule, AccessTime, Today } from '@mui/icons-material';
 import { format, parse } from 'date-fns';
+import type { RegisterOTRequest } from '../types/api';
 
 interface OTFormProps {
-  onSubmit: (data: OTFormData) => Promise<void>;
+  onSubmit: (data: RegisterOTRequest) => Promise<void>;
   isLoading: boolean;
 }
 
-interface OTFormData {
-  from_date: string;
-  to_date: string;
-  from_time: string;
-  to_time: string;
-  ot_type: 'PLAN' | 'ADDITIONAL';
-  ot_benefit_type: 'DILIGENCE' | 'COMPENSATION' | 'SALARY';
-  reason: string;
-}
-
 const OTRegistrationForm: React.FC<OTFormProps> = ({ onSubmit, isLoading }) => {
-  const [formData, setFormData] = useState<OTFormData>({
+  const [formData, setFormData] = useState<RegisterOTRequest>({
     from_date: '',
     to_date: '',
     from_time: '',
@@ -47,203 +36,156 @@ const OTRegistrationForm: React.FC<OTFormProps> = ({ onSubmit, isLoading }) => {
     ot_benefit_type: 'DILIGENCE',
     reason: '',
   });
-  const [errors, setErrors] = useState<Partial<OTFormData>>({});
+  const [errors, setErrors] = useState<Partial<RegisterOTRequest>>({});
   const [successMessage, setSuccessMessage] = useState('');
 
-  const handleInputChange = (field: keyof OTFormData) => (event: any) => {
+  const handleInputChange = (field: keyof RegisterOTRequest) => (event: any) => {
     const value = event.target ? event.target.value : event;
     setFormData(prev => ({ ...prev, [field]: value }));
-    
-    // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
     }
   };
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<OTFormData> = {};
-
-    if (!formData.from_date) {
-      newErrors.from_date = 'Start date is required';
-    }
-    if (!formData.to_date) {
-      newErrors.to_date = 'End date is required';
-    }
-    if (formData.from_date && formData.to_date && formData.from_date > formData.to_date) {
-      newErrors.to_date = 'End date must be after start date';
-    }
-    if (!formData.from_time) {
-      newErrors.from_time = 'Start time is required';
-    }
-    if (!formData.to_time) {
-      newErrors.to_time = 'End time is required';
-    }
-    if (formData.from_time && formData.to_time && formData.from_time >= formData.to_time) {
-      newErrors.to_time = 'End time must be after start time';
-    }
-    if (!formData.reason.trim()) {
-      newErrors.reason = 'Reason is required';
-    }
-
+    const newErrors: Partial<RegisterOTRequest> = {};
+    if (!formData.from_date) newErrors.from_date = 'Required';
+    if (!formData.to_date) newErrors.to_date = 'Required';
+    if (formData.from_date && formData.to_date && formData.from_date > formData.to_date)
+      newErrors.to_date = 'Must be after start date';
+    if (!formData.from_time) newErrors.from_time = 'Required';
+    if (!formData.to_time) newErrors.to_time = 'Required';
+    if (formData.from_time && formData.to_time && formData.from_time >= formData.to_time)
+      newErrors.to_time = 'Must be after start time';
+    if (!formData.reason.trim()) newErrors.reason = 'Required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-
+    if (!validateForm()) return;
     try {
       await onSubmit(formData);
       setSuccessMessage('OT registration submitted successfully!');
       setFormData({
-        from_date: '',
-        to_date: '',
-        from_time: '',
-        to_time: '',
-        ot_type: 'PLAN',
-        ot_benefit_type: 'DILIGENCE',
-        reason: '',
+        from_date: '', to_date: '', from_time: '', to_time: '',
+        ot_type: 'PLAN', ot_benefit_type: 'DILIGENCE', reason: '',
       });
       setTimeout(() => setSuccessMessage(''), 5000);
     } catch (error) {
-      // Error handling is done in parent component
+      // Handled in parent
     }
   };
 
-  const calculateDuration = () => {
-    if (formData.from_time && formData.to_time) {
-      const [fromHour, fromMin] = formData.from_time.split(':').map(Number);
-      const [toHour, toMin] = formData.to_time.split(':').map(Number);
-      const fromMinutes = fromHour * 60 + fromMin;
-      const toMinutes = toHour * 60 + toMin;
-      const durationMinutes = toMinutes - fromMinutes;
-      const hours = Math.floor(durationMinutes / 60);
-      const minutes = durationMinutes % 60;
-      return `${hours}h ${minutes}m`;
-    }
-    return '';
-  };
+  const duration = (() => {
+    if (!formData.from_time || !formData.to_time) return null;
+    const [fh, fm] = formData.from_time.split(':').map(Number);
+    const [th, tm] = formData.to_time.split(':').map(Number);
+    const mins = th * 60 + tm - (fh * 60 + fm);
+    if (mins <= 0) return null;
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return { hours: h, minutes: m, label: `${h}h ${m}m` };
+  })();
+
+  const fieldProps = (field: keyof RegisterOTRequest) => ({
+    size: 'small' as const,
+    fullWidth: true,
+    error: !!errors[field],
+    helperText: errors[field],
+    disabled: isLoading,
+  });
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Card elevation={2}>
-        <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <Schedule sx={{ mr: 1, color: 'primary.main' }} />
-            <Typography variant="h6" component="h2">
-              Overtime Registration
-            </Typography>
-          </Box>
-          
-          <Typography variant="body2" color="text.secondary" paragraph>
-            Register overtime requests with specific time windows and benefit types. All dates will be processed automatically.
+      <Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1.5 }}>
+          <Schedule color="secondary" />
+          <Typography variant="h6" sx={{ fontWeight: 700 }}>
+            Overtime Registration
           </Typography>
+        </Box>
 
-          {successMessage && (
-            <Alert severity="success" sx={{ mb: 2 }}>
-              {successMessage}
-            </Alert>
-          )}
+        {successMessage && (
+          <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccessMessage('')}>
+            {successMessage}
+          </Alert>
+        )}
 
-          <form onSubmit={handleSubmit}>
-            <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' } }}>
-              {/* Date Range */}
-              <Box sx={{ gridColumn: '1/-1' }}>
-                <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
-                  Date Range
-                </Typography>
-              </Box>
+        <form onSubmit={handleSubmit}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
 
-              <Box>
-                <DatePicker
-                  label="Start Date"
-                  value={formData.from_date ? parse(formData.from_date, 'yyyy-MM-dd', new Date()) : null}
-                  onChange={(date) => handleInputChange('from_date')(date ? format(date as Date, 'yyyy-MM-dd') : '')}
-                  slotProps={{
-                    textField: {
-                      fullWidth: true,
-                      error: !!errors.from_date,
-                      helperText: errors.from_date,
-                      disabled: isLoading,
-                    },
-                  }}
-                />
+            {/* Time Period */}
+            <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <AccessTime fontSize="small" color="action" />
+                Time Period
+              </Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block', fontWeight: 500 }}>
+                    Start
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1.5 }}>
+                    <DatePicker
+                      label="Date"
+                      value={formData.from_date ? parse(formData.from_date, 'yyyy-MM-dd', new Date()) : null}
+                      onChange={(date) => handleInputChange('from_date')(date ? format(date, 'yyyy-MM-dd') : '')}
+                      slotProps={{ textField: fieldProps('from_date') }}
+                    />
+                    <TimePicker
+                      label="Time"
+                      value={formData.from_time ? new Date(`2000-01-01T${formData.from_time}`) : null}
+                      onChange={(time) => handleInputChange('from_time')(time ? time.toTimeString().slice(0, 5) : '')}
+                      slotProps={{ textField: fieldProps('from_time') }}
+                    />
+                  </Box>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block', fontWeight: 500 }}>
+                    End
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1.5 }}>
+                    <DatePicker
+                      label="Date"
+                      value={formData.to_date ? parse(formData.to_date, 'yyyy-MM-dd', new Date()) : null}
+                      onChange={(date) => handleInputChange('to_date')(date ? format(date, 'yyyy-MM-dd') : '')}
+                      slotProps={{ textField: fieldProps('to_date') }}
+                    />
+                    <TimePicker
+                      label="Time"
+                      value={formData.to_time ? new Date(`2000-01-01T${formData.to_time}`) : null}
+                      onChange={(time) => handleInputChange('to_time')(time ? time.toTimeString().slice(0, 5) : '')}
+                      slotProps={{ textField: fieldProps('to_time') }}
+                    />
+                  </Box>
+                </Box>
               </Box>
+              {duration && (
+                <Box sx={{ mt: 1.5, display: 'flex', justifyContent: 'center' }}>
+                  <Box sx={{
+                    display: 'inline-flex', alignItems: 'center', gap: 1, px: 2, py: 0.5,
+                    borderRadius: 2, bgcolor: 'secondary.main',
+                    color: 'common.white',
+                  }}>
+                    <AccessTime sx={{ fontSize: 16 }} />
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {duration.label}
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
+            </Paper>
 
-              <Box>
-                <DatePicker
-                  label="End Date"
-                  value={formData.to_date ? parse(formData.to_date, 'yyyy-MM-dd', new Date()) : null}
-                  onChange={(date) => handleInputChange('to_date')(date ? format(date as Date, 'yyyy-MM-dd') : '')}
-                  slotProps={{
-                    textField: {
-                      fullWidth: true,
-                      error: !!errors.to_date,
-                      helperText: errors.to_date,
-                      disabled: isLoading,
-                    },
-                  }}
-                />
-              </Box>
-
-              {/* Time Range */}
-              <Box sx={{ gridColumn: '1 / -1' }}>
-                <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, mt: 2 }}>
-                  Time Window
-                </Typography>
-              </Box>
-              
-              <Box sx={{ gridColumn: { xs: '1 / -1', sm: 'auto' } }}>
-                <TimePicker
-                  label="Start Time"
-                  value={formData.from_time ? new Date(`2000-01-01T${formData.from_time}`) : null}
-                  onChange={(time) => {
-                    const timeString = time ? time.toTimeString().slice(0, 5) : '';
-                    handleInputChange('from_time')(timeString);
-                  }}
-                  slotProps={{
-                    textField: {
-                      fullWidth: true,
-                      error: !!errors.from_time,
-                      helperText: errors.from_time,
-                      disabled: isLoading,
-                    },
-                  }}
-                />
-              </Box>
-              
-              <Box sx={{ gridColumn: { xs: '1 / -1', sm: 'auto' } }}>
-                <TimePicker
-                  label="End Time"
-                  value={formData.to_time ? new Date(`2000-01-01T${formData.to_time}`) : null}
-                  onChange={(time) => {
-                    const timeString = time ? time.toTimeString().slice(0, 5) : '';
-                    handleInputChange('to_time')(timeString);
-                  }}
-                  slotProps={{
-                    textField: {
-                      fullWidth: true,
-                      error: !!errors.to_time,
-                      helperText: errors.to_time,
-                      disabled: isLoading,
-                    },
-                  }}
-                />
-              </Box>
-
-              {/* OT Configuration */}
-              <Box sx={{ gridColumn: '1 / -1' }}>
-                <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, mt: 2 }}>
-                  OT Configuration
-                </Typography>
-              </Box>
-              
-              <Box sx={{ gridColumn: { xs: '1 / -1', sm: 'auto' } }}>
-                <FormControl fullWidth error={!!errors.ot_type}>
+            {/* Configuration */}
+            <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Today fontSize="small" color="action" />
+                Configuration
+              </Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+                <FormControl fullWidth size="small">
                   <InputLabel>OT Type</InputLabel>
                   <Select
                     value={formData.ot_type}
@@ -251,14 +193,11 @@ const OTRegistrationForm: React.FC<OTFormProps> = ({ onSubmit, isLoading }) => {
                     label="OT Type"
                     disabled={isLoading}
                   >
-                    <MenuItem value="PLAN">Plan</MenuItem>
+                    <MenuItem value="PLAN">Planned</MenuItem>
                     <MenuItem value="ADDITIONAL">Additional</MenuItem>
                   </Select>
                 </FormControl>
-              </Box>
-              
-              <Box sx={{ gridColumn: { xs: '1 / -1', sm: 'auto' } }}>
-                <FormControl fullWidth error={!!errors.ot_benefit_type}>
+                <FormControl fullWidth size="small">
                   <InputLabel>Benefit Type</InputLabel>
                   <Select
                     value={formData.ot_benefit_type}
@@ -272,82 +211,43 @@ const OTRegistrationForm: React.FC<OTFormProps> = ({ onSubmit, isLoading }) => {
                   </Select>
                 </FormControl>
               </Box>
+            </Paper>
 
-              {/* Reason */}
-              <Box sx={{ gridColumn: '1 / -1' }}>
-                <TextField
-                  label="Reason"
-                  value={formData.reason}
-                  onChange={handleInputChange('reason')}
-                  fullWidth
-                  multiline
-                  minRows={3}
-                  error={!!errors.reason}
-                  helperText={errors.reason}
-                  disabled={isLoading}
-                />
-              </Box>
+            {/* Reason */}
+            <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Schedule fontSize="small" color="action" />
+                Reason
+              </Typography>
+              <TextField
+                placeholder="Describe the reason for overtime..."
+                value={formData.reason}
+                onChange={handleInputChange('reason')}
+                fullWidth
+                multiline
+                minRows={2}
+                size="small"
+                error={!!errors.reason}
+                helperText={errors.reason}
+                disabled={isLoading}
+              />
+            </Paper>
 
-              <Box sx={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <Chip
-                      icon={<CalendarToday />}
-                      label={`To: ${formData.to_date || 'Not selected'}`}
-                      color={formData.to_date ? 'primary' : 'default'}
-                      variant={formData.to_date ? 'filled' : 'outlined'}
-                    />
-                    <Chip
-                      icon={<AccessTime />}
-                      label={`${formData.from_time || '00:00'} - ${formData.to_time || '00:00'}`}
-                      color={formData.from_time && formData.to_time ? 'secondary' : 'default'}
-                      variant={formData.from_time && formData.to_time ? 'filled' : 'outlined'}
-                    />
-                    {calculateDuration() && (
-                      <Chip
-                        label={`Duration: ${calculateDuration()}`}
-                        color="info"
-                        variant="outlined"
-                      />
-                    )}
-                  </Box>
+            <Divider />
 
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                    <Chip
-                      label={`Type: ${formData.ot_type}`}
-                      color="primary"
-                      variant="outlined"
-                      size="small"
-                    />
-                    <Chip
-                      label={`Benefit: ${formData.ot_benefit_type}`}
-                      color="secondary"
-                      variant="outlined"
-                      size="small"
-                    />
-                  </Box>
-                </Box>
-
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', width: { xs: '100%', sm: 'auto' } }}>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    size="large"
-                    disabled={isLoading}
-                    sx={{ minWidth: 120, width: { xs: '100%', sm: 'auto' } }}
-                  >
-                    {isLoading ? (
-                      <CircularProgress size={24} color="inherit" />
-                    ) : (
-                      'Register OT'
-                    )}
-                  </Button>
-                </Box>
-              </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={isLoading}
+                sx={{ minWidth: 180, height: 40 }}
+              >
+                {isLoading ? <CircularProgress size={20} color="inherit" /> : 'Register OT'}
+              </Button>
             </Box>
-          </form>
-        </CardContent>
-      </Card>
+          </Box>
+        </form>
+      </Box>
     </LocalizationProvider>
   );
 };

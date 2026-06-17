@@ -149,31 +149,6 @@ const DashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* User Info */}
-        <div className="bg-white overflow-hidden shadow rounded-lg mb-6">
-          <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900">Profile Information</h3>
-            <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Email</dt>
-                <dd className="mt-1 text-sm text-gray-900">{user?.Email}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Position</dt>
-                <dd className="mt-1 text-sm text-gray-900">{user?.ChucVu}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Department</dt>
-                <dd className="mt-1 text-sm text-gray-900">{user?.PhongBan}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Title</dt>
-                <dd className="mt-1 text-sm text-gray-900">{user?.ChucDanh}</dd>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Tab Navigation */}
         <div className="bg-white shadow rounded-lg">
           <div className="border-b border-gray-200">

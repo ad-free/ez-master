@@ -11,32 +11,6 @@ EZ_APIS = {
     "salary_info": f"{EZ_HOST}/api/PR_SalaryInfo/GetPayslipDetail",
     "tickets": f"{EZ_HOST}/api/PT_Event/GetEventDetail",
     "reject_ticket": f"{EZ_HOST}/api/PT_Event/UpdateTicketWithNote",
+    "calendar": f"{EZ_HOST}/api/TA_CalendarTimecardDate/GetDataOnCalendar",
 }
 
-# Connectivity checks (used by /connections endpoint)
-VPN_PORTAL_HOSTS = [
-    "remote.mlp.com",
-    "athome-sg.mlp.com",
-    "athome-kvh.mlp.com",
-    "athome-kvh3.mlp.com",
-    "athome-new-kvh.mlp.com",
-    "athome-new-rfp.mlp.com",
-    "athome-new-sid.mlp.com",
-    "athome-new-slg.mlp.com",
-    "athome-new-smt.mlp.com",
-    "athome-new-tlc.mlp.com",
-    "athome-rfp3.mlp.com",
-    "athome-sf2.mlp.com",
-    "athome-sid3.mlp.com",
-    "athome-sid4.mlp.com",
-    "athome-slg.mlp.com",
-    "athome-slg3.mlp.com",
-    "athome-smt.mlp.com",
-    "athome-smt3.mlp.com",
-    "athome-smt4.mlp.com",
-    "athome-tlc.mlp.com",
-    "athome-tlc3.mlp.com",
-]
-
-VPN_PORTAL_DEFAULT_PORT = 443
-VPN_PORTAL_DEFAULT_TIMEOUT_S = 5.0

@@ -55,13 +55,14 @@ def register_wfh(
     - reason: Optional reason text
 
     Behavior:
-    - Logs in to obtain a token, fetches user_id, expands dates inclusively,
-      and submits a WFH registration for each date.
+    - Logs in to obtain a token, fetches user_id,
+      and submits a single WFH registration for the entire date range.
 
     Returns:
-    - status: "ok" if all submissions succeed
+    - status: "ok" if submission succeeds
     - user_id: EZ user ID
-    - dates: List of ISO-8601 datetime strings for each submitted day
+    - from_date: Start date of the range
+    - to_date: End date of the range
 
     Errors:
     - 400: Validation failures or EZ API rejection
@@ -69,11 +70,19 @@ def register_wfh(
     client = EzClient()
     try:
         token = get_ez_bearer_token(credentials, request)
-        dates = _dates_between_inclusive(req.from_date, req.to_date)
         client.register_wfh(
-            token=token, user_id=user_id, dates=dates, reason=req.reason
+            token=token,
+            user_id=user_id,
+            from_date=req.from_date,
+            to_date=req.to_date,
+            reason=req.reason,
         )
-        return {"status": "ok", "user_id": user_id, "dates": dates}
+        return {
+            "status": "ok",
+            "user_id": user_id,
+            "from_date": req.from_date,
+            "to_date": req.to_date,
+        }
     except EzException as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -164,6 +173,28 @@ def get_all_tickets(
             )
             for ticket in all_tickets
         ]
+    except EzException as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/calendar")
+def get_calendar(
+    from_date: str,
+    to_date: str,
+    language: str = "vi",
+    user_id: str = Depends(get_user_id),
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+    request: Request = None,
+):
+    """Fetch timecard calendar data for the logged-in user.
+    
+    Returns daily shift/event data (HC, OFF, overtime, business trips)
+    color-coded by shift type.
+    """
+    client = EzClient()
+    try:
+        token = get_ez_bearer_token(credentials, request)
+        return client.get_calendar_data(token, user_id, from_date, to_date, language)
     except EzException as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
