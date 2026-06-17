@@ -69,7 +69,7 @@ interface DayCellProps {
   onChipClick: (event: React.MouseEvent<HTMLElement>, ticket: Ticket) => void;
 }
 
-const DayCell = React.memo<DayCellProps>(({ day, dateKey, dayTickets, isToday, onDayClick, onChipClick }) => {
+const DayCell = React.memo<DayCellProps>(({ day, dayTickets, isToday, onDayClick, onChipClick }) => {
   const hasTickets = dayTickets.length > 0;
 
   return (

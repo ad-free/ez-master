@@ -57,7 +57,7 @@ const OTRegistrationForm: React.FC<OTFormProps> = ({ onSubmit, isLoading }) => {
     if (!formData.to_time) newErrors.to_time = 'Required';
     if (formData.from_time && formData.to_time && formData.from_time >= formData.to_time)
       newErrors.to_time = 'Must be after start time';
-    if (!formData.reason.trim()) newErrors.reason = 'Required';
+    if (!formData.reason?.trim()) newErrors.reason = 'Required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };

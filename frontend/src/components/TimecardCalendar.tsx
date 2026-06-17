@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import type { CalendarDayData, CalendarEvent } from '../types/api';
 import {
   Box,
@@ -59,7 +59,7 @@ interface DayCellProps {
   onClick: (event: React.MouseEvent<HTMLElement>, day: number) => void;
 }
 
-const DayCell = React.memo<DayCellProps>(({ day, dateKey, dayEvents, isToday, onClick }) => {
+const DayCell = React.memo<DayCellProps>(({ day, dayEvents, isToday, onClick }) => {
   const mainEvent = dayEvents.find((e) => e.Type === 0);
 
   const bgColor = mainEvent?.Style?.Background || 'transparent';
@@ -206,7 +206,7 @@ const TimecardCalendar: React.FC = () => {
       const lastDayNum = new Date(viewYear, viewMonth + 1, 0).getDate();
       const fromDate = `${viewYear}-${month}-01T00:00:00.000Z`;
       const toDate = `${viewYear}-${month}-${String(lastDayNum).padStart(2, '0')}T00:00:00.000Z`;
-      const result = await apiClient.getCalendarData(fromDate, toDate);
+      const result: any = await apiClient.getCalendarData(fromDate, toDate);
       const normalized = Array.isArray(result) ? result : result?.Data || result?.data || [];
       monthDataCache.set(monthKey, normalized);
       setData(normalized);
