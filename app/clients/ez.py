@@ -47,9 +47,9 @@ class EzClient:
         return response.json()["Data"]
 
     def register_wfh(
-        self, *, token: str, user_id: str, dates: Iterable[str], reason: str
+        self, *, token: str, user_id: str, from_date: str, to_date: str, reason: str
     ) -> None:
-        base_payload = {
+        payload = {
             "Type": "day",
             "NhomPhuCap": None,
             "IsTomorrowFromTime": False,
@@ -68,20 +68,20 @@ class EzClient:
             "ThongTinLienLac": "",
             "NotifyEmail": [],
             "UserRequest": [user_id],
+            "From": f"{from_date}T00:00:00.000Z",
+            "To": f"{to_date}T00:00:00.000Z",
         }
 
-        for date in dates:
-            payload = {**base_payload, "From": f"{date}.000Z", "To": f"{date}.000Z"}
-            response = httpx.post(
-                url=EZ_APIS["wfh"],
-                json=payload,
-                headers={"Authorization": f"bearer {token}"},
-                timeout=15,
+        response = httpx.post(
+            url=EZ_APIS["wfh"],
+            json=payload,
+            headers={"Authorization": f"bearer {token}"},
+            timeout=15,
+        )
+        if response.status_code != 200:
+            raise EzException(
+                f"Couldn't register WFH on EZ Tool. Status: {response.status_code}. Body: {response.text}"
             )
-            if response.status_code != 200:
-                raise EzException(
-                    f"Couldn't register WFH on EZ Tool. Status: {response.status_code}. Body: {response.text}"
-                )
 
     def register_ot(
         self,
@@ -199,6 +199,29 @@ class EzClient:
             raise EzException("Couldn't fetch tickets from EZ Tool.")
 
         return response.json().get("Data", [])
+
+    def get_calendar_data(
+        self,
+        token: str,
+        employee_atid: str,
+        from_date: str,
+        to_date: str,
+        language: str = "vi",
+    ) -> list[dict]:
+        response = httpx.get(
+            url=EZ_APIS["calendar"],
+            headers={"Authorization": f"bearer {token}"},
+            timeout=15,
+            params={
+                "employeeAtid": employee_atid,
+                "fromDate": from_date,
+                "toDate": to_date,
+                "language": language,
+            },
+        )
+        if response.status_code != 200:
+            raise EzException("Couldn't fetch calendar data from EZ Tool.")
+        return response.json()
 
     def reject_ticket_by_id(self, token: str, ticket_id: int) -> None:
         payload = {

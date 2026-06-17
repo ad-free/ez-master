@@ -1,20 +1,10 @@
 import React, { useState } from 'react';
 import {
   Box,
-  Card,
-  CardContent,
   Button,
   Typography,
   Alert,
   CircularProgress,
-  Chip,
-  Divider,
-  Paper,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  IconButton,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -22,10 +12,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import {
   AttachMoney,
   Download,
-  CalendarToday,
-  Description,
-  CheckCircle,
-  Error,
+  Info,
 } from '@mui/icons-material';
 
 interface SalaryDownloadProps {
@@ -33,21 +20,31 @@ interface SalaryDownloadProps {
   isLoading: boolean;
 }
 
+const monthLabels = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+const currentMonthStr = () => {
+  const now = new Date();
+  return `${monthLabels[now.getMonth()]} ${now.getFullYear()}`;
+};
+
 const SalaryDownload: React.FC<SalaryDownloadProps> = ({ onDownload, isLoading }) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const [downloadHistory, setDownloadHistory] = useState<string[]>([]);
 
-  const handleDownload = async () => {
+  const resetAlerts = () => {
+    setSuccessMessage('');
+    setErrorMessage('');
+  };
+
+  const handleDownload = async (date?: string) => {
     try {
-      setErrorMessage('');
-      const dateString = selectedDate ? selectedDate.toISOString().slice(0, 7) : undefined;
-      await onDownload(dateString);
-      
-      const displayDate = dateString || 'Current Month';
-      setSuccessMessage(`Salary PDF for ${displayDate} downloaded successfully!`);
-      setDownloadHistory(prev => [displayDate, ...prev.slice(0, 4)]); // Keep last 5 downloads
+      resetAlerts();
+      await onDownload(date);
+      setSuccessMessage(`Salary PDF for ${date || currentMonthStr()} downloaded successfully!`);
       setTimeout(() => setSuccessMessage(''), 5000);
     } catch (error: any) {
       setErrorMessage(error.message || 'Failed to download salary PDF');
@@ -55,171 +52,88 @@ const SalaryDownload: React.FC<SalaryDownloadProps> = ({ onDownload, isLoading }
     }
   };
 
-  const getCurrentMonth = () => {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), 1);
-  };
-
-  const formatDateForDisplay = (date: Date) => {
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+  const handleCustomDownload = async () => {
+    if (!selectedDate) return;
+    const dateString = selectedDate.toISOString().slice(0, 7);
+    await handleDownload(dateString);
   };
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Card elevation={2}>
-        <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <AttachMoney sx={{ mr: 1, color: 'primary.main' }} />
-            <Typography variant="h6" component="h2">
-              Salary Management
+      <Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+            <AttachMoney color="primary" />
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+              Salary History
             </Typography>
           </Box>
-          
-          <Typography variant="body2" color="text.secondary" paragraph>
-            Download your salary PDFs for any month. Select a specific month or download the current month's salary.
-          </Typography>
 
           {successMessage && (
-            <Alert severity="success" sx={{ mb: 2 }} icon={<CheckCircle />}>
+            <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccessMessage('')}>
               {successMessage}
             </Alert>
           )}
 
           {errorMessage && (
-            <Alert severity="error" sx={{ mb: 2 }} icon={<Error />}>
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setErrorMessage('')}>
               {errorMessage}
             </Alert>
           )}
 
-          <Box sx={{ display: 'grid', gap: 3 }}>
-            {/* Quick Download Options */}
-            <Box>
-              <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
-                Quick Download
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
-                <Button
-                  variant="contained"
-                  startIcon={<Download />}
-                  onClick={() => onDownload()}
-                  disabled={isLoading}
-                  sx={{ minWidth: 200 }}
-                >
-                  {isLoading ? (
-                    <CircularProgress size={20} color="inherit" />
-                  ) : (
-                    'Current Month'
-                  )}
-                </Button>
-                <Chip
-                  icon={<CalendarToday />}
-                  label={formatDateForDisplay(getCurrentMonth())}
-                  color="primary"
-                  variant="outlined"
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+            <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 2, flexWrap: 'wrap' }}>
+              <Box sx={{ flex: { xs: '1 1 100%', sm: '0 1 240px' } }}>
+                <DatePicker
+                  label="Select month"
+                  value={selectedDate}
+                  onChange={(date) => setSelectedDate(date)}
+                  views={['year', 'month']}
+                  slotProps={{
+                    textField: {
+                      size: 'small',
+                      fullWidth: true,
+                      disabled: isLoading,
+                    },
+                  }}
                 />
               </Box>
-            </Box>
-
-            <Box sx={{ width: '100%', mt: 3 }}>
-              <Divider />
-            </Box>
-
-            {/* Custom Date Selection */}
-            <Box sx={{ width: '100%', mt: 3 }}>
-              <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
-                Select Specific Month
-              </Typography>
-            </Box>
-
-            <Box sx={{ width: { xs: '100%', sm: '50%' }, mt: 2 }}>
-              <DatePicker
-                label="Select Month"
-                value={selectedDate}
-                onChange={(date) => setSelectedDate(date)}
-                views={['year', 'month']}
-                slotProps={{
-                  textField: {
-                    fullWidth: true,
-                    disabled: isLoading,
-                  },
-                }}
-              />
-            </Box>
-
-            <Box sx={{ width: { xs: '100%', sm: '50%' }, mt: 2 }}>
               <Button
-                variant="outlined"
-                startIcon={<Download />}
-                onClick={handleDownload}
+                variant="contained"
+                startIcon={isLoading ? <CircularProgress size={18} color="inherit" /> : <Download />}
+                onClick={handleCustomDownload}
                 disabled={isLoading || !selectedDate}
-                fullWidth
-                sx={{ height: '56px' }}
+                sx={{ height: 40, minWidth: 200 }}
               >
-                {isLoading ? (
-                  <CircularProgress size={20} color="inherit" />
-                ) : (
-                  'Download Selected Month'
-                )}
+                {isLoading ? 'Downloading...' : 'Download'}
               </Button>
             </Box>
 
-            {/* Recent Downloads */}
-            {downloadHistory.length > 0 && (
-              <>
-                <Box sx={{ width: '100%', mt: 3 }}>
-                  <Divider sx={{ my: 2 }} />
-                </Box>
-                
-                <Box sx={{ width: '100%', mt: 3 }}>
-                  <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
-                    Recent Downloads
-                  </Typography>
-                  <Paper elevation={1} sx={{ bgcolor: 'grey.50' }}>
-                    <List dense>
-                      {downloadHistory.map((month, index) => (
-                        <ListItem key={index}>
-                          <ListItemIcon>
-                            <Description color="primary" />
-                          </ListItemIcon>
-                          <ListItemText
-                            primary={`Salary - ${month}`}
-                            secondary={`Downloaded ${index === 0 ? 'just now' : `${index} ago`}`}
-                          />
-                          <IconButton
-                            edge="end"
-                            onClick={() => {
-                              // Re-download logic could go here
-                              console.log(`Re-downloading ${month}`);
-                            }}
-                            disabled={isLoading}
-                          >
-                            <Download />
-                          </IconButton>
-                        </ListItem>
-                      ))}
-                    </List>
-                  </Paper>
-                </Box>
-              </>
-            )}
-
-            {/* Information */}
-            <Box sx={{ width: '100%', mt: 3 }}>
-              <Divider sx={{ my: 2 }} />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Typography variant="body2" color="text.secondary">
+                Or download
+              </Typography>
+              <Button
+                variant="text"
+                size="small"
+                onClick={() => handleDownload()}
+                disabled={isLoading}
+                sx={{ textTransform: 'none', fontWeight: 600, minWidth: 0 }}
+              >
+                current month
+              </Button>
+              <Typography variant="body2" color="text.secondary">
+                ({currentMonthStr()})
+              </Typography>
             </Box>
 
-            <Box sx={{ width: '100%', mt: 2 }}>
-              <Paper elevation={1} sx={{ p: 2, bgcolor: 'info.light', color: 'info.contrastText' }}>
-                <Typography variant="body2">
-                  <strong>Note:</strong> Salary PDFs are generated in real-time from your EZ account. 
-                  Make sure you have the necessary permissions to access salary information. 
-                  Downloads are available for the last 12 months.
-                </Typography>
-              </Paper>
+            <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'flex-start', mt: 1 }}>
+              <Info sx={{ fontSize: 16, color: 'text.secondary', mt: 0.3 }} />
+              <Typography variant="caption" color="text.secondary">
+                Salary PDFs are generated in real-time. Downloads available for the last 12 months.
+              </Typography>
             </Box>
           </Box>
-        </CardContent>
-      </Card>
+      </Box>
     </LocalizationProvider>
   );
 };

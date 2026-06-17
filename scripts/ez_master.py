@@ -193,13 +193,14 @@ def register_ot(
     print(f"[!] WFH registration successful for {user_id}")
 
 
-def register_wfh(token: str, user_id: str, dates: list, reason: str):
+def register_wfh(token: str, user_id: str, from_date: str, to_date: str, reason: str):
     """Register WFH
 
     Args:
         token (str): The token during calling the API
         user_id (str): The UserID
-        dates (list): The date list
+        from_date (str): Start date YYYY-MM-DD
+        to_date (str): End date YYYY-MM-DD
         reason (str): The WFH reason
 
     Raises:
@@ -224,22 +225,22 @@ def register_wfh(token: str, user_id: str, dates: list, reason: str):
         "ThongTinLienLac": "",
         "NotifyEmail": [],
         "UserRequest": [user_id],
+        "From": f"{from_date}T00:00:00.000Z",
+        "To": f"{to_date}T00:00:00.000Z",
     }
 
     print(f"[!] Registing WFH for {user_id}")
 
-    for date in dates:
-        payload = {**payload, "From": f"{date}.000Z", "To": f"{date}.000Z"}
-        response = httpx.post(
-            url=EZ_APIS["wfh"],
-            json=payload,
-            headers={"Authorization": f"bearer {token}"},
-            timeout=10,
-        )
+    response = httpx.post(
+        url=EZ_APIS["wfh"],
+        json=payload,
+        headers={"Authorization": f"bearer {token}"},
+        timeout=10,
+    )
 
-        if response.status_code != 200:
-            print(response.content)
-            raise EzException("Coudn't register WFH on EZ Tool.")
+    if response.status_code != 200:
+        print(response.content)
+        raise EzException("Coudn't register WFH on EZ Tool.")
 
     print(f"[!] WFH registration successful for {user_id}")
 
@@ -318,7 +319,11 @@ def ez_master(script_args: argparse.Namespace):
             )
         case EzType.WFH.value:
             register_wfh(
-                token=token, user_id=user_id, dates=dates, reason=script_args.reason
+                token=token,
+                user_id=user_id,
+                from_date=script_args.from_date,
+                to_date=script_args.to_date,
+                reason=script_args.reason,
             )
         case EzType.SALARY.value:
             print("[!] Downloading the salary file.")

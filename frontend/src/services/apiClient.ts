@@ -40,28 +40,7 @@ interface ApiResponse<T = any> {
   data?: T;
 }
 
-interface ConnectionsRequest {
-  hosts?: string[];
-  include_default?: boolean;
-  port?: number;
-  timeout_s?: number;
-}
 
-interface ConnectionResult {
-  host: string;
-  port: number;
-  status: string;
-  latency_ms?: number | null;
-  error?: string | null;
-}
-
-interface ConnectionsResponse {
-  checked_at: string;
-  port: number;
-  timeout_s: number;
-  results: ConnectionResult[];
-  best: ConnectionResult[];
-}
 
 class ApiClient {
   private client: any;
@@ -186,6 +165,14 @@ class ApiClient {
     return response.data;
   }
 
+  // Calendar / Timecard endpoints
+  async getCalendarData(fromDate: string, toDate: string, language = 'vi'): Promise<any[]> {
+    const response = await this.client.get('/calendar', {
+      params: { from_date: fromDate, to_date: toDate, language },
+    });
+    return response.data;
+  }
+
   // Tickets endpoints
   async getTickets(ticket_status = 'Pending', page_size = 200): Promise<any[]> {
     const response = await this.client.get('/tickets', {
@@ -199,16 +186,6 @@ class ApiClient {
     return response.data;
   }
 
-  // Connectivity endpoints
-  async getConnections(): Promise<ConnectionsResponse> {
-    const response = await this.client.get('/connections');
-    return response.data;
-  }
-
-  async checkConnections(req: ConnectionsRequest): Promise<ConnectionsResponse> {
-    const response = await this.client.post('/connections', req);
-    return response.data;
-  }
 }
 
 // Create and export a singleton instance

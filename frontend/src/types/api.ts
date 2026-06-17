@@ -43,7 +43,28 @@ export interface ApiError {
   detail: string;
 }
 
-// Force Vite refresh - cache issue fix
+// Timecard Calendar types
+export interface CalendarEventStyle {
+  Text: string;
+  Border: string;
+  Background: string;
+  TypeTimeCard: number;
+  EventStatus: string | null;
+}
+
+export interface CalendarEvent {
+  Type: number;
+  Style: CalendarEventStyle;
+  Date: string;
+  Title: string;
+  TypeShift: number;
+  Index: number;
+}
+
+export interface CalendarDayData {
+  Date: string;
+  Data: CalendarEvent[];
+}
 
 // Ticket types returned by backend GetTicketsResponse
 export interface Ticket {
@@ -55,26 +76,3 @@ export interface Ticket {
   created_at?: string;
 }
 
-// Connectivity (/connections)
-export interface ConnectionsRequest {
-  hosts?: string[];
-  include_default?: boolean;
-  port?: number;
-  timeout_s?: number;
-}
-
-export interface ConnectionResult {
-  host: string;
-  port: number;
-  status: 'ONLINE' | 'OFFLINE' | string;
-  latency_ms?: number | null;
-  error?: string | null;
-}
-
-export interface ConnectionsResponse {
-  checked_at: string;
-  port: number;
-  timeout_s: number;
-  results: ConnectionResult[];
-  best: ConnectionResult[];
-}
