@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { Box, CircularProgress } from '@mui/material';
+import { Box } from '@mui/material';
 
 // Components
 import LoginPage from './components/LoginPage';
@@ -117,6 +117,7 @@ const theme = createTheme({
 // Auth Context
 const AuthContext = React.createContext<{
   isAuthenticated: boolean;
+  isInitializing: boolean;
   isLoading: boolean;
   user: ProfileResponse | null;
   login: (username: string, password: string) => Promise<void>;
@@ -134,23 +135,40 @@ const useAuth = () => {
 // Auth Provider
 const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [user, setUser] = useState<ProfileResponse | null>(null);
 
   React.useEffect(() => {
     const initializeAuth = async () => {
       try {
         const hasToken = apiClient.loadTokenFromStorage();
-        if (hasToken) {
-          const profile = await apiClient.getProfile();
-          setUser(profile);
+        if (!hasToken) {
+          return;
+        }
+
+        const cachedProfile = apiClient.loadProfileFromStorage();
+        if (cachedProfile) {
+          setUser(cachedProfile);
           setIsAuthenticated(true);
+        }
+
+        setIsInitializing(false);
+
+        try {
+          const freshProfile = await apiClient.getProfile();
+          setUser(freshProfile);
+          apiClient.saveProfileToStorage(freshProfile);
+        } catch {
+          apiClient.clearToken();
+          setUser(null);
+          setIsAuthenticated(false);
         }
       } catch (error) {
         console.error('Failed to initialize auth:', error);
         apiClient.clearToken();
       } finally {
-        setIsLoading(false);
+        setIsInitializing(false);
       }
     };
 
@@ -162,6 +180,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     try {
       await apiClient.login({ username, password });
       const profile = await apiClient.getProfile();
+      apiClient.saveProfileToStorage(profile);
       setUser(profile);
       setIsAuthenticated(true);
     } catch (error) {
@@ -178,50 +197,35 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isLoading, user, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, isInitializing, isLoading, user, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-// Loading Spinner
-const LoadingSpinner: React.FC = () => {
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-      }}
-    >
-      <CircularProgress size={60} />
-    </Box>
-  );
-};
-
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isInitializing } = useAuth();
 
-  if (isLoading) {
-    return <LoadingSpinner />;
+  if (!isInitializing && !isAuthenticated) {
+    return <Navigate to="/login" replace />;
   }
 
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+  return <>{children}</>;
 };
 
 // App Routes
 const AppRoutes: React.FC = () => {
-  const { isAuthenticated, isLoading, user, login, logout } = useAuth();
+  const { isAuthenticated, isInitializing, isLoading, user, login, logout } = useAuth();
   const [loginError, setLoginError] = useState('');
+
+  const hasToken = apiClient.loadTokenFromStorage();
 
   const handleLogin = async (username: string, password: string) => {
     setLoginError('');
     try {
       await login(username, password);
     } catch (error: any) {
-      // Log full error for easier debugging (network, CORS, server message, etc.)
       console.error('Login error (full):', error);
       const serverMessage =
         error?.response?.data?.detail ||
@@ -236,16 +240,12 @@ const AppRoutes: React.FC = () => {
     }
   };
 
-  if (isLoading) {
-    return <LoadingSpinner />;
-  }
-
   return (
     <Routes>
       <Route
         path="/login"
         element={
-          isAuthenticated ? (
+          isAuthenticated || (isInitializing && hasToken) ? (
             <Navigate to="/dashboard" replace />
           ) : (
             <LoginPage
@@ -260,7 +260,7 @@ const AppRoutes: React.FC = () => {
         path="/dashboard"
         element={
           <ProtectedRoute>
-            {user && <DashboardPage user={user} onLogout={logout} />}
+            <DashboardPage user={user} onLogout={logout} />
           </ProtectedRoute>
         }
       />

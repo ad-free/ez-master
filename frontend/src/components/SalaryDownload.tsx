@@ -3,7 +3,6 @@ import {
   Box,
   Button,
   Typography,
-  Alert,
   CircularProgress,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -32,24 +31,9 @@ const currentMonthStr = () => {
 
 const SalaryDownload: React.FC<SalaryDownloadProps> = ({ onDownload, isLoading }) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [successMessage, setSuccessMessage] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
-
-  const resetAlerts = () => {
-    setSuccessMessage('');
-    setErrorMessage('');
-  };
 
   const handleDownload = async (date?: string) => {
-    try {
-      resetAlerts();
-      await onDownload(date);
-      setSuccessMessage(`Salary PDF for ${date || currentMonthStr()} downloaded successfully!`);
-      setTimeout(() => setSuccessMessage(''), 5000);
-    } catch (error: any) {
-      setErrorMessage(error.message || 'Failed to download salary PDF');
-      setTimeout(() => setErrorMessage(''), 5000);
-    }
+    await onDownload(date);
   };
 
   const handleCustomDownload = async () => {
@@ -67,18 +51,6 @@ const SalaryDownload: React.FC<SalaryDownloadProps> = ({ onDownload, isLoading }
               Salary History
             </Typography>
           </Box>
-
-          {successMessage && (
-            <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccessMessage('')}>
-              {successMessage}
-            </Alert>
-          )}
-
-          {errorMessage && (
-            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setErrorMessage('')}>
-              {errorMessage}
-            </Alert>
-          )}
 
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
             <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 2, flexWrap: 'wrap' }}>

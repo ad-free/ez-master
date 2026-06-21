@@ -20,6 +20,7 @@ import {
   useMediaQuery,
   Badge,
   Tooltip,
+  Skeleton,
 } from '@mui/material';
 import {
   Home,
@@ -50,7 +51,7 @@ interface ProfileResponse {
 }
 
 interface DashboardProps {
-  user: ProfileResponse;
+  user: ProfileResponse | null;
   onLogout: () => void;
 }
 
@@ -202,16 +203,29 @@ const DashboardPage: React.FC<DashboardProps> = ({ user, onLogout }) => {
         bgcolor: 'action.hover',
         display: 'flex', alignItems: 'center', gap: 1.5,
       }}>
-        <Avatar sx={{ bgcolor: 'secondary.main', width: 34, height: 34, fontSize: '0.8rem', fontWeight: 600 }}>
-          {user.FirstName.charAt(0)}{user.LastName.charAt(0)}
-        </Avatar>
+        {user ? (
+          <Avatar sx={{ bgcolor: 'secondary.main', width: 34, height: 34, fontSize: '0.8rem', fontWeight: 600 }}>
+            {user.FirstName.charAt(0)}{user.LastName.charAt(0)}
+          </Avatar>
+        ) : (
+          <Skeleton variant="circular" width={34} height={34} />
+        )}
         <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-          <Typography variant="body2" noWrap sx={{ fontWeight: 700, lineHeight: 1.3 }}>
-            {user.FirstName} {user.LastName}
-          </Typography>
-          <Typography variant="caption" noWrap color="text.secondary">
-            {user.ChucVu}
-          </Typography>
+          {user ? (
+            <>
+              <Typography variant="body2" noWrap sx={{ fontWeight: 700, lineHeight: 1.3 }}>
+                {user.FirstName} {user.LastName}
+              </Typography>
+              <Typography variant="caption" noWrap color="text.secondary">
+                {user.ChucVu}
+              </Typography>
+            </>
+          ) : (
+            <>
+              <Skeleton variant="text" width={100} height={20} />
+              <Skeleton variant="text" width={60} height={16} />
+            </>
+          )}
         </Box>
         <Tooltip title="Logout">
           <IconButton onClick={onLogout} size="small" color="error" sx={{ borderRadius: 1.5 }}>
@@ -287,12 +301,21 @@ const DashboardPage: React.FC<DashboardProps> = ({ user, onLogout }) => {
                   <NotificationsOutlined fontSize="small" />
                 </Badge>
               </IconButton>
-              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                {user.FirstName}
-              </Typography>
-              <Avatar sx={{ width: 30, height: 30, fontSize: '0.75rem', fontWeight: 600, bgcolor: 'primary.main' }}>
-                {user.FirstName.charAt(0)}{user.LastName.charAt(0)}
-              </Avatar>
+              {user ? (
+                <>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                    {user.FirstName}
+                  </Typography>
+                  <Avatar sx={{ width: 30, height: 30, fontSize: '0.75rem', fontWeight: 600, bgcolor: 'primary.main' }}>
+                    {user.FirstName.charAt(0)}{user.LastName.charAt(0)}
+                  </Avatar>
+                </>
+              ) : (
+                <>
+                  <Skeleton variant="text" width={50} height={20} />
+                  <Skeleton variant="circular" width={30} height={30} />
+                </>
+              )}
             </Box>
           </Toolbar>
         </AppBar>

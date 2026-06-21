@@ -109,6 +109,7 @@ class ApiClient {
   clearToken() {
     this.token = null;
     localStorage.removeItem('ez_token');
+    localStorage.removeItem('ez_user_profile');
   }
 
   loadTokenFromStorage() {
@@ -117,6 +118,25 @@ class ApiClient {
       this.token = token;
     }
     return !!token;
+  }
+
+  saveProfileToStorage(profile: ProfileResponse) {
+    localStorage.setItem('ez_user_profile', JSON.stringify(profile));
+  }
+
+  loadProfileFromStorage(): ProfileResponse | null {
+    const raw = localStorage.getItem('ez_user_profile');
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as ProfileResponse;
+    } catch {
+      localStorage.removeItem('ez_user_profile');
+      return null;
+    }
+  }
+
+  clearProfileFromStorage() {
+    localStorage.removeItem('ez_user_profile');
   }
 
   // Auth endpoints

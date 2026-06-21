@@ -147,22 +147,32 @@ class EzClient:
         if not date:
             date = datetime.now(timezone.utc).strftime("%Y-%m")
         payload = {"monthYear": date}
-        get_salary_info = httpx.get(
-            url=EZ_APIS["salary_info"],
-            params=payload,
-            headers={"Authorization": f"bearer {token}"},
-            timeout=20,
-        )
-        get_salary_info.raise_for_status()
+        try:
+            get_salary_info = httpx.get(
+                url=EZ_APIS["salary_info"],
+                params=payload,
+                headers={"Authorization": f"bearer {token}"},
+                timeout=20,
+            )
+            get_salary_info.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            raise EzException(
+                f"Failed to get salary info: {exc.response.status_code} - {exc.response.text}"
+            ) from exc
         salary_info = get_salary_info.json().get("Data")
         if not salary_info or not salary_info.get("Path"):
             raise EzException("Salary info not available for the specified date.")
-        response = httpx.get(
-            url=salary_info["Path"],
-            headers={"Authorization": f"bearer {token}"},
-            timeout=30,
-        )
-        response.raise_for_status()
+        try:
+            response = httpx.get(
+                url=salary_info["Path"],
+                headers={"Authorization": f"bearer {token}"},
+                timeout=30,
+            )
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            raise EzException(
+                f"Failed to download salary PDF: {exc.response.status_code} - {exc.response.text}"
+            ) from exc
         filename = f"salary_{date}.pdf"
         return filename, response.content
 
